@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env
+
+# Sinh ra bởi build.js / seed.js — không commit bản build.
+src/ui.html
+seed.generated.sql

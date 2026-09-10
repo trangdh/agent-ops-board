@@ -1,0 +1,304 @@
+:root {
+  /* Atlassian Design System tokens (light) */
+  --ads-B400: #0C66E4;
+  --ads-B75: #E9F2FF;
+  --ads-N0: #FFFFFF;
+  --ads-N20: #F4F5F7;
+  --ads-N40: #DFE1E6;
+  --ads-N200: #6B778C;
+  --ads-N300: #5E6C84;
+  --ads-N800: #172B4D;
+  --ads-Y75: #FFF7D6;
+  --ads-Y200: #FFF0B3;
+  --ads-Y700: #974F0C;
+  --ads-G75: #E3FCEF;
+  --ads-G700: #006644;
+  --ads-R75: #FFEBE6;
+  --ads-R700: #BF2600;
+
+  --surface: var(--ads-N0);
+  --surface-sunken: var(--ads-N20);
+  --border: var(--ads-N40);
+  --text: var(--ads-N800);
+  --text-subtle: var(--ads-N300);
+  --text-subtlest: var(--ads-N200);
+  --link: var(--ads-B400);
+  --mention-bg: var(--ads-B75);
+  --mention-text: var(--ads-B400);
+  --btn-primary-bg: var(--ads-B400);
+  --btn-primary-text: #FFFFFF;
+  --shadow-raised: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  --shadow-overlay: 0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1D2125;
+    --surface-sunken: #161A1D;
+    --border: #454F59;
+    --text: #DEE4EA;
+    --text-subtle: #B6C2CF;
+    --text-subtlest: #9FADBC;
+    --link: #579DFF;
+    --mention-bg: #09326C;
+    --mention-text: #85B8FF;
+    --btn-primary-bg: #579DFF;
+    --btn-primary-text: #1D2125;
+    --ads-Y75: #332E1B;
+    --ads-Y200: #533F04;
+    --ads-Y700: #F5CD47;
+    --ads-G75: #133328;
+    --ads-G700: #7EE2B8;
+    --ads-R75: #42221F;
+    --ads-R700: #FD9891;
+    --shadow-raised: 0 1px 1px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.4);
+    --shadow-overlay: 0 8px 12px rgba(0, 0, 0, 0.45), 0 0 1px rgba(0, 0, 0, 0.5);
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1D2125;
+  --surface-sunken: #161A1D;
+  --border: #454F59;
+  --text: #DEE4EA;
+  --text-subtle: #B6C2CF;
+  --text-subtlest: #9FADBC;
+  --link: #579DFF;
+  --mention-bg: #09326C;
+  --mention-text: #85B8FF;
+  --btn-primary-bg: #579DFF;
+  --btn-primary-text: #1D2125;
+  --ads-Y75: #332E1B;
+  --ads-Y200: #533F04;
+  --ads-Y700: #F5CD47;
+  --ads-G75: #133328;
+  --ads-G700: #7EE2B8;
+  --ads-R75: #42221F;
+  --ads-R700: #FD9891;
+  --shadow-raised: 0 1px 1px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: 0 8px 12px rgba(0, 0, 0, 0.45), 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--surface-sunken);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.43;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 64px; }
+
+.topbar {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: 16px; padding-bottom: 16px; margin-bottom: 16px;
+}
+.topbar h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; color: var(--text); }
+.topbar .sub { margin: 0; color: var(--text-subtle); font-size: 13px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-subtle); }
+.legend-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+.toolbar input[type="search"] {
+  flex: 1 1 220px; max-width: 320px; padding: 7px 10px; border-radius: 3px;
+  border: 2px solid transparent; background: var(--surface); color: var(--text);
+  font-family: var(--font); font-size: 14px; box-shadow: inset 0 0 0 1px var(--border);
+}
+.toolbar input[type="search"]:focus-visible { outline: none; border-color: var(--ads-B400); box-shadow: none; }
+.toolbar input[type="search"]::placeholder { color: var(--text-subtlest); }
+
+.btn {
+  all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: center;
+  gap: 6px; padding: 7px 12px; border-radius: 3px; font-size: 14px; font-weight: 500;
+  background: var(--surface-sunken); color: var(--text); box-shadow: inset 0 0 0 1px var(--border);
+}
+.btn:hover { background: var(--border); }
+.btn:focus-visible { outline: 2px solid var(--ads-B400); outline-offset: 1px; }
+.btn--primary { background: var(--btn-primary-bg); color: var(--btn-primary-text); box-shadow: none; font-weight: 600; }
+.btn--primary:hover { filter: brightness(0.94); background: var(--btn-primary-bg); }
+.btn--subtle { background: transparent; box-shadow: none; color: var(--text-subtle); }
+.btn--subtle:hover { background: var(--surface-sunken); }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.readonly-note {
+  font-size: 12px; color: var(--ads-Y700); background: var(--ads-Y75);
+  border-radius: 3px; padding: 4px 9px;
+}
+.error-note {
+  font-size: 12px; color: var(--ads-R700); background: var(--ads-R75);
+  border-radius: 3px; padding: 4px 9px;
+}
+
+/* board-row bọc ngoài: rail Backlog (khi gấp) + lưới 4/5 cột chính, xem render()/backlogRail()
+   trong app.js. Backlog gấp -> board-row chỉ có rail + .board 4 cột, y hệt bố cục trước khi có
+   Backlog (PO chốt 04/09/2026). Backlog mở -> rail biến mất, .board--5col đủ 5 cột ngang hàng. */
+.board-row { display: flex; gap: 12px; align-items: start; }
+.board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: start; flex: 1; min-width: 0; }
+.board--5col { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 1100px) { .board { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 680px) { .board-row { flex-direction: column; } .board { grid-template-columns: 1fr; width: 100%; } }
+
+/* Dải hẹp thay cột Backlog lúc gấp — cùng hàng với 4 cột kia, bấm để mở lại thành cột đầy đủ.
+   Trên mobile board-row đổi thành cột dọc (xem media query trên) nên rail cũng nằm ngang full-
+   width phía trên thay vì dải hẹp bên trái — chữ "Backlog" phải nằm ngang theo, xoay dọc chỉ hợp
+   khi rail đứng cạnh 4 cột kia (PO chốt 04/09/2026). */
+.backlog-rail {
+  all: unset; cursor: pointer; flex: none; width: 34px; box-sizing: border-box;
+  background: var(--surface-sunken); border-radius: 6px; display: flex; flex-direction: column;
+  align-items: center; gap: 10px; padding: 12px 0; color: var(--text-subtle);
+}
+.backlog-rail-arrow { font-size: 11px; }
+.backlog-rail-label {
+  writing-mode: vertical-rl; font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 680px) {
+  .backlog-rail { flex-direction: row; width: 100%; padding: 8px 12px; }
+  .backlog-rail-label { writing-mode: horizontal-tb; }
+}
+
+.column { background: var(--surface-sunken); border-radius: 6px; min-width: 0; }
+.column-head { display: flex; align-items: center; gap: 6px; padding: 8px 10px; }
+.column-head h2 {
+  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  margin: 0; color: var(--text-subtle); flex: 1;
+}
+.column-count {
+  font-size: 12px; color: var(--text-subtlest); background: var(--surface); border-radius: 999px;
+  padding: 0 8px; box-shadow: inset 0 0 0 1px var(--border);
+}
+/* Nut gap Backlog lai (chỉ cột này có) — xem backlogRail() ở app.js. */
+.column-toggle {
+  all: unset; cursor: pointer; font-size: 11px; color: var(--text-subtlest); width: 16px;
+  text-align: center; flex: none;
+}
+.column-body { padding: 0 6px 6px; display: flex; flex-direction: column; gap: 8px; }
+.empty-state { color: var(--text-subtlest); font-size: 13px; padding: 16px 8px; margin: 0; text-align: center; }
+
+.card {
+  all: unset; display: block; box-sizing: border-box; width: 100%;
+  background: var(--surface); border-radius: 3px; box-shadow: var(--shadow-raised);
+  padding: 10px 12px; cursor: pointer;
+}
+.card:hover { box-shadow: 0 1px 1px rgba(9,30,66,0.25), 0 0 1px 1px var(--ads-B400); }
+.card:focus-visible { outline: 2px solid var(--ads-B400); outline-offset: 1px; }
+.card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; min-height: 18px; }
+.demo-tag { font-size: 11px; color: var(--ads-Y700); background: var(--ads-Y75); border-radius: 3px; padding: 1px 6px; }
+.jira-link { font-size: 12px; color: var(--link); font-weight: 500; }
+.card-time { margin-left: auto; font-size: 11px; color: var(--text-subtlest); }
+.card-title { font-size: 14px; font-weight: 500; margin: 0 0 10px; color: var(--text); text-align: left; }
+.card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--avatar-size, 28px); height: var(--avatar-size, 28px);
+  border-radius: 50%; background: var(--avatar-color, #6B778C);
+  font-size: calc(var(--avatar-size, 28px) * 0.55); flex: none; line-height: 1;
+}
+
+.tracker { display: inline-flex; align-items: center; }
+.tracker-step { display: inline-flex; opacity: 0.35; border-radius: 50%; }
+.tracker-step--done, .tracker-step--current { opacity: 1; }
+.tracker-step--current { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ads-B400); border-radius: 50%; }
+.tracker-sep { width: 6px; }
+.tracker--sidebar { flex-wrap: wrap; gap: 4px 0; }
+
+.lozenge {
+  display: inline-flex; align-items: center; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.02em; border-radius: 3px; padding: 2px 8px; white-space: nowrap;
+}
+.lozenge--sm { font-size: 10.5px; padding: 1px 6px; font-weight: 500; }
+.lozenge--new { background: var(--surface-sunken); color: var(--text-subtle); box-shadow: inset 0 0 0 1px var(--border); }
+.lozenge--waiting { background: var(--ads-Y200); color: var(--ads-Y700); }
+.lozenge--inprogress { background: var(--mention-bg); color: var(--link); }
+.lozenge--success { background: var(--ads-G75); color: var(--ads-G700); }
+
+/* Modal — Jira issue-view style popup */
+dialog.modal {
+  border: none; padding: 0; border-radius: 6px; box-shadow: var(--shadow-overlay);
+  width: min(980px, 92vw); max-height: min(760px, 88vh);
+  background: var(--surface); color: var(--text);
+}
+dialog.modal::backdrop { background: rgba(9, 30, 66, 0.54); }
+.modal-panel { display: flex; flex-direction: column; max-height: min(760px, 88vh); }
+.modal-header { padding: 20px 24px 12px; border-bottom: 1px solid var(--border); flex: none; }
+.modal-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.issue-key { font-size: 12px; color: var(--text-subtle); font-weight: 500; }
+.modal-close {
+  all: unset; cursor: pointer; width: 28px; height: 28px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center; color: var(--text-subtle); font-size: 14px;
+}
+.modal-close:hover { background: var(--surface-sunken); }
+.modal-close:focus-visible { outline: 2px solid var(--ads-B400); }
+.modal-title { font-size: 20px; font-weight: 600; margin: 0 0 10px; text-wrap: balance; }
+
+.modal-body { display: grid; grid-template-columns: 1fr 260px; gap: 0; overflow: hidden; flex: 1; min-height: 0; }
+@media (max-width: 640px) { .modal-body { grid-template-columns: 1fr; } }
+/* overscroll-behavior: contain — cuộn tới hết .modal-main/.modal-sidebar thì DỪNG LẠI, không
+   chain tiếp ra cuộn trang phía sau dialog (PO báo 08/09/2026: "thỉnh thoảng scroll ở modal bị
+   scroll cả background" — <dialog> dù showModal() vẫn không tự chặn wheel-scroll chaining ra
+   ngoài khi khung con chạm đáy/đỉnh, đây là quirk trình duyệt, không phải lỗi ở JS). */
+.modal-main { padding: 16px 24px 24px; overflow-y: auto; overscroll-behavior: contain; border-right: 1px solid var(--border); }
+@media (max-width: 640px) { .modal-main { border-right: none; } }
+.modal-sidebar { padding: 16px 20px 24px; overflow-y: auto; overscroll-behavior: contain; }
+/* Details lên trên, Description/Activity xuống dưới (PO chốt 28/08/2026) — 2 cột dồn còn 1
+   dưới 640px thì đọc Status/Jira key/... trước khi lướt xuống hội thoại hợp lý hơn. `order`
+   thuần CSS nên không đụng thứ tự DOM (giữ nguyên cho desktop và cho tab/screen reader). */
+@media (max-width: 640px) {
+  .modal-sidebar { order: -1; border-bottom: 1px solid var(--border); }
+}
+
+.section { margin-bottom: 22px; }
+.section-title {
+  font-size: 13px; font-weight: 600; color: var(--text-subtle); margin: 0 0 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.count-pill {
+  font-size: 11px; font-weight: 600; background: var(--surface-sunken); color: var(--text-subtle);
+  border-radius: 999px; padding: 0 7px;
+}
+
+.description-meta { font-size: 12px; color: var(--text-subtle); display: flex; align-items: center; gap: 6px; margin: 0 0 6px; }
+.description-text { font-size: 14px; margin: 0; white-space: pre-wrap; }
+
+.comment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.comment { display: flex; gap: 10px; }
+.comment-body { min-width: 0; flex: 1; }
+.comment-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.comment-author { font-size: 13px; font-weight: 600; color: var(--text); }
+.comment-time { font-size: 12px; color: var(--text-subtlest); }
+.comment-text { font-size: 14px; margin: 0 0 4px; white-space: pre-wrap; }
+.mention {
+  display: inline-block; background: var(--mention-bg); color: var(--mention-text);
+  border-radius: 3px; padding: 0 4px; font-weight: 500;
+}
+
+.detail-field { margin-bottom: 14px; }
+.detail-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-subtle); margin-bottom: 4px; }
+.detail-value { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.detail-done { color: var(--ads-G700); font-weight: 600; }
+
+/* Create-task form */
+dialog.form-modal { width: min(560px, 92vw); }
+.form-body { padding: 20px 24px 8px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-subtle); margin-bottom: 4px; }
+.field input[type="text"], .field textarea {
+  width: 100%; padding: 8px 10px; border-radius: 3px; border: 2px solid transparent;
+  background: var(--surface); color: var(--text); font-family: var(--font); font-size: 14px;
+  box-shadow: inset 0 0 0 1px var(--border); resize: vertical;
+}
+.field input[type="text"]:focus-visible, .field textarea:focus-visible {
+  outline: none; border-color: var(--ads-B400); box-shadow: none;
+}
+.field .hint { font-size: 12px; color: var(--text-subtlest); margin: 4px 0 0; }
+.form-actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 12px 24px 20px; border-top: 1px solid var(--border); margin-top: 8px;
+}
+
+.foot { margin-top: 28px; font-size: 12px; color: var(--text-subtlest); }
+.foot code { background: var(--surface); border-radius: 3px; padding: 1px 5px; box-shadow: inset 0 0 0 1px var(--border); }

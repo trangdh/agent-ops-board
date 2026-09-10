@@ -1,0 +1,73 @@
+{
+  "board_title": "Agent Ops Board",
+  "_readme": "Dữ liệu khởi tạo cho database trống: danh sách agent + vài card ví dụ. Sửa file này rồi chạy `npm run seed`. Sau khi board chạy thật thì D1 là nguồn dữ liệu duy nhất — file này KHÔNG đồng bộ ngược.",
+
+  "_agents_note": "key = định danh dùng trong API (from/to/pipeline), handle = tên gõ sau @ trong comment, icon = emoji hoặc đường dẫn ảnh trong public/. Đổi tên/màu thoải mái, không đụng gì tới logic. `po` là bạn — người giao việc và duyệt; giữ nguyên key này vì board dùng nó để biết tin nào là của bạn (vẽ lệch phải, không hiện trong danh sách @tag).",
+  "agents": {
+    "po": { "label": "PO", "handle": "po", "icon": "🧑‍💼", "color": "#0C66E4", "role": "Người giao việc / duyệt" },
+    "coordinator": { "label": "Coordinator", "handle": "coord", "icon": "🧭", "color": "#FFAB00", "role": "Điều phối — nhận việc từ PO, gọi agent theo pipeline" },
+    "analyst": { "label": "Analyst", "handle": "analyst", "icon": "🔎", "color": "#6554C0", "role": "Phân tích vấn đề, dựng đề xuất" },
+    "reporter": { "label": "Reporter", "handle": "reporter", "icon": "📊", "color": "#00B8D9", "role": "Bổ sung số liệu" },
+    "planner": { "label": "Planner", "handle": "planner", "icon": "🗂️", "color": "#36B37E", "role": "Xếp lịch, phân công" },
+    "announcer": { "label": "Announcer", "handle": "announcer", "icon": "📣", "color": "#FF5630", "role": "Thông báo ra ngoài khi việc xong" }
+  },
+
+  "tasks": [
+    {
+      "id": "demo-1",
+      "demo": true,
+      "session_id": null,
+      "title": "Nút Duplicate phải bấm hai lần mới ăn",
+      "status": "running",
+      "created_at": "2026-01-06T09:02:00+07:00",
+      "updated_at": "2026-01-06T09:14:00+07:00",
+      "jira_key": "DEMO-1821",
+      "pipeline": ["coordinator", "analyst", "reporter", "planner", "announcer"],
+      "current_step": "announcer",
+      "messages": [
+        { "from": "po", "to": "coordinator", "kind": "request", "at": "2026-01-06T09:02:00+07:00",
+          "text": "Nhiều người dùng phàn nàn nút Duplicate phải bấm hai lần mới nhân bản — xử lý giúp." },
+        { "from": "coordinator", "to": "analyst", "kind": "call", "at": "2026-01-06T09:02:40+07:00",
+          "text": "@analyst tạo issue cho case: nút Duplicate phải bấm hai lần, tuần này có nhiều phản ánh." },
+        { "from": "analyst", "to": "coordinator", "kind": "reply", "at": "2026-01-06T09:04:10+07:00",
+          "text": "Draft issue: **[Bug] Duplicate requires two clicks to trigger**. Xác nhận tạo trên Jira?",
+          "needs_approval": true, "approved": true, "approved_at": "2026-01-06T09:05:00+07:00" },
+        { "from": "analyst", "to": "coordinator", "kind": "note", "at": "2026-01-06T09:05:20+07:00",
+          "text": "Đã tạo DEMO-1821." },
+        { "from": "coordinator", "to": "reporter", "kind": "call", "at": "2026-01-06T09:05:40+07:00",
+          "text": "@reporter bổ sung số người dùng bị ảnh hưởng cho DEMO-1821." },
+        { "from": "reporter", "to": "coordinator", "kind": "reply", "at": "2026-01-06T09:08:15+07:00",
+          "text": "340 lượt gọi API `duplicate` bị retry trong 7 ngày qua, ước ~340 người dùng ảnh hưởng. Thêm vào mô tả DEMO-1821?",
+          "needs_approval": true, "approved": true, "approved_at": "2026-01-06T09:09:00+07:00" },
+        { "from": "coordinator", "to": "planner", "kind": "call", "at": "2026-01-06T09:09:20+07:00",
+          "text": "@planner xếp DEMO-1821 vào sprint tới." },
+        { "from": "planner", "to": "coordinator", "kind": "reply", "at": "2026-01-06T09:12:00+07:00",
+          "text": "Đề xuất xếp DEMO-1821 vào sprint 12, gán cho người đang giữ mảng editor. Xác nhận?",
+          "needs_approval": true, "approved": true, "approved_at": "2026-01-06T09:13:10+07:00" },
+        { "from": "coordinator", "to": "po", "kind": "note", "at": "2026-01-06T09:14:00+07:00",
+          "text": "Chưa gọi @announcer đăng thông báo. Bước này không tự động — khi DEMO-1821 xong, bạn nhắn một câu vào card này để kích hoạt (báo ra ngoài cần bạn quyết định thời điểm, không để máy tự đoán)." }
+      ]
+    },
+    {
+      "id": "demo-2",
+      "demo": true,
+      "session_id": null,
+      "title": "Tổng hợp phản hồi người dùng tuần này",
+      "status": "pending_approval",
+      "created_at": "2026-01-06T10:20:00+07:00",
+      "updated_at": "2026-01-06T10:31:00+07:00",
+      "jira_key": null,
+      "pipeline": ["coordinator", "reporter"],
+      "current_step": "reporter",
+      "messages": [
+        { "from": "po", "to": "coordinator", "kind": "request", "at": "2026-01-06T10:20:00+07:00",
+          "text": "Tổng hợp phản hồi người dùng tuần này, nhóm theo chủ đề, gửi mình bản tóm tắt." },
+        { "from": "coordinator", "to": "reporter", "kind": "call", "at": "2026-01-06T10:20:30+07:00",
+          "text": "@reporter gom phản hồi 7 ngày gần nhất, nhóm theo chủ đề, mỗi nhóm kèm số lượt nhắc." },
+        { "from": "reporter", "to": "po", "kind": "reply", "at": "2026-01-06T10:31:00+07:00",
+          "text": "Ba nhóm lớn nhất:\n\n| Chủ đề | Số lượt |\n|---|---|\n| Xuất file chậm | 18 |\n| Nút Duplicate | 11 |\n| Đăng nhập SSO | 6 |\n\nGửi bản đầy đủ vào Slack luôn chứ?",
+          "needs_approval": true }
+      ]
+    }
+  ]
+}

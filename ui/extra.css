@@ -1,0 +1,478 @@
+/* Phần CSS chỉ có ở bản web (nối sau ../page/styles.css — xem build.js).
+   Bản artifact không có đăng nhập, không poll, không duyệt tại chỗ nên không cần mấy cái này. */
+
+/* .topbar (page/styles.css) giờ có đúng 2 con: .topbar-left (title+legend, layout y hệt bản
+   cũ khi 2 khối này còn là con trực tiếp của .topbar) và .topbar-actions — space-between của
+   .topbar tự đẩy topbar-actions (Map/Sign out) lên góc phải trên cùng. */
+.topbar-left { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+/* Details (sidebar) gấp lại được trên mobile (PO chốt 28/08/2026): 2 cột dồn còn 1 dưới 640px
+   thì Status/Assignee/.../Danger zone dài lòi ra hết trước khi PO cuộn tới Description/Activity.
+   Desktop giữ nguyên luôn mở như trước — khoá click + ẩn mũi tên, không ai xin gấp ở đó. */
+.sidebar-details summary { cursor: pointer; list-style: none; }
+.sidebar-details summary::-webkit-details-marker { display: none; }
+.sidebar-details summary::before {
+  content: "▸"; display: inline-block; font-size: 10px; color: var(--text-subtle);
+  margin-right: 2px; transition: transform 0.15s;
+}
+.sidebar-details[open] summary::before { transform: rotate(90deg); }
+@media (min-width: 641px) {
+  .sidebar-details summary { cursor: default; pointer-events: none; }
+  .sidebar-details summary::before { display: none; }
+}
+
+.sync-dot {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--text-subtlest);
+}
+.sync-dot::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ads-G700); flex: none;
+}
+.sync-dot[data-state="loading"]::before { background: var(--ads-Y700); }
+.sync-dot[data-state="error"]::before { background: var(--ads-R700); }
+
+.logout-link { font-size: 12px; color: var(--text-subtle); text-decoration: none; }
+.logout-link:hover { text-decoration: underline; }
+
+.approve-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.btn--approve {
+  font-size: 12px; padding: 3px 10px; background: var(--ads-G75); color: var(--ads-G700);
+  box-shadow: inset 0 0 0 1px var(--ads-G700); font-weight: 600;
+}
+.btn--approve:hover { background: var(--ads-G700); color: var(--surface); }
+
+/* Link trong nội dung message/description (URL, mã Jira, đường dẫn file trong repo) */
+.comment-text a, .description-text a, .issue-key a, .detail-value a {
+  color: var(--link);
+  text-decoration: none;
+  word-break: break-word;
+}
+.comment-text a:hover, .description-text a:hover, .issue-key a:hover, .detail-value a:hover {
+  text-decoration: underline;
+}
+.comment-text a:focus-visible, .description-text a:focus-visible {
+  outline: 2px solid var(--ads-B400);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* Header popup: mã card + nút copy link nằm cạnh nhau bên trái, nút đóng bên phải.
+   Mã Jira KHÔNG còn ở đây (PO chốt 25/08/2026) — vẫn có link ở ô "Mã Jira" trong sidebar. */
+.issue-key { display: inline-flex; align-items: center; gap: 8px; }
+.task-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; color: var(--text-subtle);
+  background: var(--surface-sunken); border-radius: 3px; padding: 2px 7px;
+}
+.btn--copy { font-size: 12px; padding: 3px 8px; white-space: nowrap; }
+
+/* Ô comment trong card — PO nhắn thẳng cho agent, không cần mở Slack.
+   Dính đáy khung cuộn (PO chốt 26/08/2026): đọc tới đâu cũng gõ trả lời được ngay, không phải
+   cuộn xuống cuối tìm ô nhập. Nền đục để nội dung trôi BÊN DƯỚI nó chứ không lộ ra sau chữ.
+   Âm padding hai bên rồi bù lại bằng padding trong: dải nền phải phủ hết bề ngang .modal-main
+   (padding 24px), nếu không sẽ hở 2 mép và thấy chữ chạy qua. */
+.comment-form {
+  position: sticky; bottom: 0; z-index: 2;
+  margin: 14px -24px 0; padding: 10px 24px 14px;
+  border-top: 1px solid var(--border); background: var(--surface);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.comment-form-hint { font-size: 11px; color: var(--text-subtlest); margin-right: auto; }
+
+/* Reaction của agent trên từng message: 🐾 đang làm · ✅ xong · ❌ không làm được */
+.reaction-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.reaction {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; line-height: 1.6;
+  background: var(--surface-sunken); border-radius: 999px; padding: 1px 9px 1px 7px;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.reaction-who { color: var(--text-subtle); font-size: 11px; }
+/* Card đang chờ PO ra tay: viền trái đỏ + nhãn, để lướt board là thấy ngay việc của mình */
+.card--needs-po { box-shadow: var(--shadow-raised), inset 3px 0 0 0 var(--ads-R700); }
+.needs-po {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: var(--surface); background: var(--ads-R700);
+  border-radius: 3px; padding: 1px 7px; white-space: nowrap;
+}
+.needs-po::before { content: "●"; font-size: 8px; }
+
+/* Textarea đè lên lớp "gương": gương vẽ ô nền cho @tag, textarea giữ caret/undo/bàn phím ảo.
+   MỌI thuộc tính ảnh hưởng cách chữ xuống dòng phải GIỐNG HỆT nhau ở 2 lớp, lệch một chút là
+   ô nền trượt khỏi chữ. */
+.comment-editor { position: relative; }
+.comment-highlight, .comment-input {
+  width: 100%; min-height: 66px;
+  padding: 8px 10px; border: 2px solid transparent; border-radius: 3px;
+  font-family: inherit; font-size: 14px; line-height: 1.43;
+  white-space: pre-wrap; overflow-wrap: break-word;
+  box-sizing: border-box;
+}
+.comment-highlight {
+  position: absolute; inset: 0; z-index: 0;
+  color: transparent; overflow: hidden; pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--border); background: var(--surface); border-radius: 3px;
+}
+.comment-input {
+  position: relative; z-index: 1;
+  background: transparent; color: var(--text); resize: vertical;
+}
+.comment-input:focus-visible { outline: none; border-color: var(--ads-B400); }
+.comment-input::placeholder { color: var(--text-subtlest); }
+.mention-hit {
+  background: var(--mention-bg); color: transparent;
+  border-radius: 3px; padding: 0; box-decoration-break: clone;
+}
+
+/* Danh sách gợi ý agent khi gõ @ */
+.mention-menu {
+  position: absolute; z-index: 5; left: 8px; bottom: calc(100% + 4px);
+  margin: 0; padding: 4px; list-style: none; min-width: 220px;
+  background: var(--surface); border-radius: 6px; box-shadow: var(--shadow-overlay);
+}
+.mention-menu[hidden] { display: none; }
+.mention-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; border-radius: 3px; cursor: pointer; font-size: 13px;
+}
+.mention-item.is-sel, .mention-item:hover { background: var(--mention-bg); }
+.mention-item-handle { font-weight: 600; color: var(--mention-text); }
+.mention-item-label { color: var(--text-subtle); font-size: 12px; }
+/* Run now / Later + dropdown lịch hẹn trong modal tạo task (thay hẳn radio "When to run",
+   PO chốt 28/08/2026 — 3 lựa chọn rời rạc trước đó ("Just create it"/"Run now"/"Schedule")
+   giờ LÀ 2 nút bấm, và Schedule thu vào dropdown cạnh Later thay vì đứng ngang hàng). */
+.run-split { position: relative; display: inline-flex; }
+.run-split #nt-later { border-radius: 3px 0 0 3px; }
+.run-split-caret {
+  border-radius: 0 3px 3px 0; padding: 7px 6px; border-left: 1px solid var(--border);
+}
+.run-schedule-menu {
+  position: absolute; bottom: calc(100% + 6px); right: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px;
+  width: 220px; max-width: 90vw;
+  background: var(--surface); border-radius: 4px;
+  box-shadow: inset 0 0 0 1px var(--border), var(--shadow-overlay);
+}
+.run-schedule-menu[hidden] { display: none; }
+.run-schedule-label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-subtle); }
+.run-schedule-label .run-at { width: 100%; }
+.run-at {
+  padding: 3px 8px; border-radius: 3px; border: none; box-shadow: inset 0 0 0 1px var(--border);
+  background: var(--surface); color: var(--text); font-family: inherit; font-size: 13px;
+}
+.run-at:disabled { opacity: 0.45; }
+
+.comment-form-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.comment-form-msg { font-size: 12px; color: var(--text-subtle); }
+
+/* File đính kèm trong comment (PO chốt 28/08/2026). */
+.comment-attach-btn { font-size: 15px; padding: 6px 8px; }
+
+/* Chip "chưa gửi" trong ô soạn — có nút xoá tay, khác hẳn chip "đã gửi" trong message thật
+   (cái đó không sửa lại được nữa). */
+.comment-pending-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+.comment-pending-attachments[hidden] { display: none; }
+.attach-chip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; max-width: 220px;
+  background: var(--surface-sunken); color: var(--text); border-radius: 999px;
+  padding: 3px 10px; box-shadow: inset 0 0 0 1px var(--border); text-decoration: none;
+}
+.attach-chip:hover { background: var(--border); }
+.attach-size { color: var(--text-subtlest); white-space: nowrap; }
+.attach-chip-remove {
+  all: unset; cursor: pointer; color: var(--text-subtlest); font-size: 11px; line-height: 1; padding: 2px;
+}
+.attach-chip-remove:hover { color: var(--ads-R700); }
+
+/* Chip "đang tải lên" (PO chốt 07/09/2026) — spinner để phân biệt rõ với chip đã xong, không
+   để PO tưởng bấm 📎/thả file không có phản hồi gì. */
+.attach-chip--uploading { color: var(--text-subtle); }
+.attach-spinner {
+  width: 10px; height: 10px; border-radius: 50%; flex: none;
+  border: 2px solid var(--border); border-top-color: var(--text-subtle);
+  animation: attach-spin 0.7s linear infinite;
+}
+@keyframes attach-spin { to { transform: rotate(360deg); } }
+
+/* Kéo-thả file vào ô soạn (PO chốt 07/09/2026) — viền đứt nổi bật khi có file đang kéo qua. */
+.comment-editor, .field--chat { border-radius: 4px; transition: box-shadow 0.1s; }
+.comment-editor.is-dragover, .field--chat.is-dragover {
+  box-shadow: 0 0 0 2px var(--ads-B400), inset 0 0 0 1px var(--ads-B400);
+}
+
+/* File ĐÃ GỬI kèm 1 message — ảnh thành thumbnail bấm mở gốc, còn lại chip tải về (không có
+   nút xoá — message gửi rồi thì không sửa lại). Tự đẩy sang phải cho tin của PO nhờ ăn theo
+   `align-items: flex-end` đã đặt trên .comment--mine .comment-body, không cần luật riêng. */
+.attachments { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.attach-img { display: inline-block; border-radius: 6px; overflow: hidden; box-shadow: inset 0 0 0 1px var(--border); }
+.attach-img img { display: block; max-width: 220px; max-height: 220px; object-fit: cover; }
+
+/* Ô Status trong cột Details chứa 2 thứ: dropdown + nút tắt/bật cảnh báo. Sidebar chỉ rộng
+   260px nên phải cho xuống dòng, không thì nút bị đẩy tràn ra ngoài. */
+.detail-value { flex-wrap: wrap; row-gap: 6px; }
+
+/* Dropdown đổi trạng thái: trông như cái lozenge cũ (để header không đổi dáng), nhưng bấm
+   được. Màu ăn theo trạng thái hiện tại, giống hệt bảng màu của .lozenge--*. */
+.status-select {
+  font: inherit; font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  border: 0; border-radius: 3px; padding: 3px 26px 3px 8px; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-repeat: no-repeat; background-position: right 7px center; background-size: 8px 5px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'%3E%3Cpath fill='%23626f86' d='M0 0h8L4 5z'/%3E%3C/svg%3E");
+}
+.status-select:hover { filter: brightness(0.96); }
+.status-select:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.status-select:disabled { opacity: 0.6; cursor: progress; }
+/* Trong cột Details (chỗ ở chính của nó từ 26/08/2026): to hơn một chút so với khi còn nằm
+   cạnh tiêu đề, vì ở đây nó là Ô ĐIỀU KHIỂN chứ không phải cái nhãn trang trí. */
+.detail-value .status-select { font-size: 11.5px; padding: 5px 26px 5px 10px; }
+.status-select--new { background-color: var(--surface-sunken); color: var(--text-subtle); box-shadow: inset 0 0 0 1px var(--border); }
+.status-select--waiting { background-color: var(--ads-Y200); color: var(--ads-Y700); }
+.status-select--inprogress { background-color: var(--mention-bg); color: var(--link); }
+.status-select--success { background-color: var(--ads-G75); color: var(--ads-G700); }
+/* Danh sách xổ ra do OS vẽ — phải trả về nền thường, không thì chữ chìm vào màu lozenge. */
+.status-select option { background: var(--surface, #fff); color: var(--text, #172b4d); font-weight: 500; }
+.alert-toggle { color: var(--text-subtle); }
+.alert-toggle:hover { background: var(--surface-sunken); }
+
+/* Giao ngay / hẹn giờ cho card đã tạo (sidebar) */
+.run-zone { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.run-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.run-row-note { font-size: 11px; color: var(--text-subtlest); }
+/* Hàng hẹn giờ tách riêng và thụt vào chút, để ô ngày rõ ràng chỉ thuộc về nút Schedule */
+.run-row--schedule {
+  gap: 6px; padding-top: 8px; border-top: 1px dashed var(--border);
+}
+.run-at-existing { flex: 1 1 128px; min-width: 0; }
+/* Bàn giao sang phiên local (việc cần trình duyệt) */
+.btn--tiny { font-size: 11px; padding: 3px 8px; }
+
+/* Ô tạo task — một textarea duy nhất, không hỏi Title (PO chốt 28/08/2026, xem field--chat
+   trong formModalHtml()). Cỡ chữ nhỉnh hơn field thường một chút cho giống ô chat thật. */
+.field--chat textarea { font-size: 15px; }
+
+/* Sửa description ngay trên card, khỏi phải xoá làm lại */
+.section-title [data-editdesc] { margin-left: auto; }
+.description-empty { color: var(--text-subtlest); font-style: italic; }
+
+/* Sửa title ngay trên card — cùng cơ chế với sửa description ở trên */
+.modal-title-row { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+.modal-title-row .modal-title { margin: 0; flex: 1 1 auto; min-width: 0; }
+.modal-title-row [data-edittitle] { flex: none; }
+.title-edit-form { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; }
+.title-edit-input {
+  flex: 1 1 auto; min-width: 0; font-size: 16px; font-weight: 600; padding: 6px 8px;
+  border-radius: 3px; border: 2px solid transparent; background: var(--surface); color: var(--text);
+  font-family: var(--font); box-shadow: inset 0 0 0 1px var(--border);
+}
+.title-edit-input:focus-visible { outline: none; border-color: var(--ads-B400); box-shadow: none; }
+.desc-edit-form .field { margin-bottom: 8px; }
+.desc-edit-form .desc-edit-input { font-size: 14px; }
+.desc-edit-actions { display: flex; gap: 8px; }
+.run-scheduled {
+  font-size: 12px; color: var(--ads-Y700); background: var(--ads-Y75);
+  border-radius: 3px; padding: 4px 8px; margin: 6px 0 0;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+
+/* Vùng nguy hiểm cuối sidebar — đặt xa chỗ hay bấm, và phải bấm 2 lần mới xoá thật */
+.danger-zone { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--border); }
+.btn--danger {
+  font-size: 12px; padding: 4px 10px;
+  background: transparent; color: var(--ads-R700);
+  box-shadow: inset 0 0 0 1px var(--ads-R700);
+}
+.btn--danger:hover { background: var(--ads-R75); }
+.btn--danger-armed { background: var(--ads-R700); color: var(--surface); font-weight: 600; }
+.btn--danger-armed:hover { background: var(--ads-R700); }
+.danger-note { font-size: 11px; color: var(--ads-R700); margin: 6px 0 0; }
+
+.page-loading, .page-error {
+  padding: 48px 20px; text-align: center; color: var(--text-subtle); font-size: 14px;
+}
+.page-error { color: var(--ads-R700); }
+
+/* ---------- markdown rút gọn trong message ----------
+   Bản artifact (page/render.js) vẫn dùng renderer cũ nên page/styles.css giữ nguyên
+   `white-space: pre-wrap`. Ở web, richText() đã dựng sẵn khối HTML nên phải tắt pre-wrap đi,
+   nếu không mọi khoảng thụt lề trong HTML sinh ra sẽ hiện thành khoảng trắng thật. */
+.comment-text.md, .description-text.md { white-space: normal; }
+
+/* Tin PO lệch phải kiểu khung chat (PO chốt 28/08/2026) — avatar đảo sang phải, đầu đề + bong
+   bóng chữ dồn theo. Agent vẫn đứng trái mặc định (không thêm class) nên liếc cái biết ngay
+   ai đang nói, không cần đọc tên trước. */
+.comment--mine { flex-direction: row-reverse; }
+.comment--mine .comment-body { display: flex; flex-direction: column; align-items: flex-end; }
+.comment--mine .comment-head { flex-direction: row-reverse; }
+.comment--mine .comment-text {
+  display: inline-block; max-width: 88%; text-align: left;
+  background: var(--mention-bg); border-radius: 12px 12px 2px 12px;
+  padding: 8px 12px; margin: 0 0 4px;
+}
+.comment--mine .reaction-row, .comment--mine .approve-row { justify-content: flex-end; }
+
+/* Reply: hàng riêng dưới cùng comment, không phải cạnh giờ ở đầu (PO chốt 03/09/2026 — đổi từ
+   bản đầu 28/08/2026 nằm trong .comment-head). */
+.comment-actions { margin-top: 6px; }
+
+/* Kéo thả card đổi status (PO chốt 28/08/2026) — chỉ desktop, xem wire() trong app.js. */
+.card { cursor: grab; }
+.card--dragging { opacity: 0.4; cursor: grabbing; }
+.column--dragover { box-shadow: inset 0 0 0 2px var(--ads-B400); }
+
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md-p { margin: 0 0 8px; font-size: 14px; line-height: 1.55; }
+
+.md-h { margin: 14px 0 6px; line-height: 1.35; font-weight: 600; color: var(--text); }
+.md-h1 { font-size: 15px; }
+.md-h2 { font-size: 14px; }
+.md-h3 { font-size: 13px; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.md-list { margin: 0 0 8px; padding-left: 20px; font-size: 14px; line-height: 1.55; }
+.md-list li { margin: 2px 0; }
+.md-sub { margin: 2px 0 2px; padding-left: 18px; }
+
+.md-code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.87em; background: var(--surface-sunken); border-radius: 3px;
+  padding: 1px 4px; box-shadow: inset 0 0 0 1px var(--border);
+}
+.md-pre {
+  margin: 0; padding: 10px 12px; overflow-x: auto;
+  background: var(--surface-sunken); border: 1px solid var(--border); border-radius: 4px;
+}
+.md-pre code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px; line-height: 1.5; background: none; padding: 0; box-shadow: none;
+}
+
+.md-quote {
+  margin: 0; padding: 2px 28px 2px 12px; font-size: 14px; line-height: 1.55;
+  border-left: 3px solid var(--border); color: var(--text-subtle);
+}
+
+/* Nut Copy dat goc tren-phai khoi code/blockquote (PO chot 04/09/2026 — khoi prompt dan thang
+   vao Claude Design thi phai copy nguyen xi ra ngoai, khong the bam-keo chon tay tren mobile). */
+.md-block { position: relative; margin: 0 0 8px; }
+.md-copy-btn { position: absolute; top: 6px; right: 6px; background: var(--surface); }
+.md-hr { margin: 12px 0; border: 0; border-top: 1px solid var(--border); }
+
+/* Bảng rộng thì tự cuộn TRONG khung của nó — popup không bao giờ được cuộn ngang cả trang. */
+.md-table-wrap { margin: 0 0 8px; overflow-x: auto; }
+.md-table { border-collapse: collapse; font-size: 13px; min-width: 100%; }
+.md-table th, .md-table td {
+  border: 1px solid var(--border); padding: 5px 9px; text-align: left; vertical-align: top;
+}
+.md-table th { background: var(--surface-sunken); font-weight: 600; white-space: nowrap; }
+
+/* Ô soạn thấp lại còn 2 dòng và TỰ GIÃN khi gõ dài (autoGrow trong app.js) — vùng đọc ở giữa là
+   thứ đáng được rộng, không phải ô nhập đang trống. Gương phải theo cùng min-height, lệch một
+   chút là ô nền @tag trượt khỏi chữ. */
+.comment-highlight, .comment-input { min-height: 46px; }
+.comment-input { resize: none; overflow-y: auto; max-height: 150px; }
+
+/* Header popup mỏng lại. Ghi đè ở đây chứ không sửa page/styles.css — file đó dùng chung với bản
+   artifact (page/render.js) vốn không có ô comment sticky nên không cần tiết kiệm chiều cao. */
+.modal-header { padding: 12px 24px 8px; }
+.modal-header-top { margin-bottom: 4px; }
+.modal-title { font-size: 17px; margin: 0 0 2px; }
+/* padding-bottom PHẢI là 0. Bản trước để nguyên 24px của page/styles.css rồi bù bằng
+   margin-bottom âm + bottom âm trên form — lệch 10px, và đúng 10px đó là khe hở để comment lòi
+   ra DƯỚI ô nhập (PO báo 26/08/2026, xem ảnh chụp). Không bù trừ nữa: form tự lo padding đáy,
+   mép dưới của nó trùng khít mép dưới khung cuộn ở cả hai trạng thái (dính và tự nhiên). */
+.modal-main { padding-top: 12px; padding-bottom: 0; }
+
+/* Cuộn nhanh lên đầu / xuống cuối. Nằm đè lên nội dung, ngay trên mép ô comment — cố ý không
+   chiếm dòng riêng, vì mục đích của cả thay đổi này là NỚI vùng đọc chứ không phải bóp thêm. */
+.scroll-nav {
+  position: absolute; right: 24px; top: -30px; z-index: 3;
+  display: flex; gap: 4px;
+}
+.scroll-nav[hidden] { display: none; }
+.scroll-btn {
+  all: unset; cursor: pointer; width: 24px; height: 24px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; line-height: 1; color: var(--text-subtle);
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--border), var(--shadow-overlay);
+}
+.scroll-btn:hover { background: var(--surface-sunken); color: var(--text); }
+.scroll-btn:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+/* Nhãn "optional" cạnh Title trong modal tạo task */
+.field-optional {
+  font-size: 11px; font-weight: 400; color: var(--text-subtlest);
+  text-transform: none; letter-spacing: 0;
+}
+
+/* Nút "Show N more" / "Show fewer" ở cuối cột Done */
+.column-more {
+  width: 100%; margin-top: 4px; justify-content: center;
+  font-size: 12px; color: var(--text-subtle);
+}
+.column-more:hover { background: var(--surface-sunken); color: var(--text); }
+
+/* Nút "Show N earlier" khi Activity của 1 card bị gấp bớt (PO chốt 07/09/2026) — nằm giữa tiêu
+   đề "Activity" và danh sách comment, phần bị ẩn luôn là phần CŨ HƠN (đứng trên). */
+.comment-more { margin: 4px 0 8px; font-size: 12px; color: var(--text-subtle); }
+.comment-more:hover { background: var(--surface-sunken); color: var(--text); }
+
+/* Avatar bằng ảnh (cột icon là đường dẫn thay vì emoji). overflow:hidden + object-fit:cover để
+   ảnh không vuông vẫn ra hình tròn gọn; nền trong suốt vì ảnh đã phủ kín, giữ --avatar-color lại
+   làm nền lúc ảnh chưa tải xong hoặc tải hỏng. */
+.avatar--img { overflow: hidden; padding: 0; }
+.avatar--img img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
+
+/* Thẻ hồ sơ agent hiện khi rê chuột lên avatar.
+   position: fixed vì toạ độ tính theo màn hình (getBoundingClientRect) — và cũng nhờ vậy mà
+   overflow của .modal-body không cắt mất nó. z-index cao để nằm trên mọi lớp trong dialog. */
+.agent-card {
+  position: fixed; z-index: 50; pointer-events: none;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 8px; max-width: 320px;
+  background: var(--surface); box-shadow: var(--shadow-overlay);
+  border: 1px solid var(--border);
+  opacity: 0; transform: translateY(3px); transition: opacity .12s ease, transform .12s ease;
+}
+.agent-card.is-on { opacity: 1; transform: none; }
+.agent-card-face {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 56px; height: 56px; border-radius: 50%; overflow: hidden;
+  background: var(--avatar-color, #6B778C); font-size: 30px; line-height: 1;
+}
+.agent-card-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.agent-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.agent-card-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.agent-card-handle { font-size: 12px; font-weight: 500; color: var(--link); }
+.agent-card-role { font-size: 12px; color: var(--text-subtle); line-height: 1.4; }
+
+/* Ô chọn trình duyệt trong Details. Trống = card không được cấp Claude in Chrome. */
+.browser-select, .browser-input {
+  width: 100%; padding: 5px 8px; font: inherit; font-size: 12px;
+  border-radius: 3px; border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px var(--border);
+  background: var(--surface); color: var(--text);
+}
+.browser-input::placeholder { color: var(--text-subtlest); }
+.browser-select:focus-visible, .browser-input:focus-visible { outline: none; border-color: var(--link); }
+.browser-select:disabled, .browser-input:disabled { opacity: 0.6; cursor: progress; }
+.browser-select { cursor: pointer; }
+.detail-none { font-size: 12px; color: var(--text-subtlest); }
+
+/* Dòng trạng thái sống khi card đang chạy. Chấm nhấp nháy là tín hiệu "còn thở" — chữ có thể
+   đứng yên cả phút khi agent đang nghĩ, chỉ mỗi chữ thì không phân biệt được với treo. */
+.progress-live {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 6px; padding: 5px 9px; border-radius: 4px;
+  background: var(--mention-bg); font-size: 11.5px; color: var(--link);
+  overflow: hidden;
+}
+.progress-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.progress-dot {
+  flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
+  animation: progress-pulse 1.4s ease-in-out infinite;
+}
+@keyframes progress-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .progress-dot { animation: none; } }

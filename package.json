@@ -1,0 +1,17 @@
+{
+  "name": "agent-ops-board",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Agent Ops Board — bảng theo dõi hội thoại giữa các AI agent, chạy trên Cloudflare Worker + D1",
+  "license": "MIT",
+  "scripts": {
+    "build": "node build.js",
+    "deploy": "node build.js && wrangler deploy",
+    "schema": "wrangler d1 execute agent-ops-board --remote --file=schema.sql",
+    "seed": "node seed.js && wrangler d1 execute agent-ops-board --remote --file=seed.generated.sql",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3"
+  }
+}

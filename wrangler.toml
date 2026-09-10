@@ -1,0 +1,73 @@
+# Cấu hình Cloudflare Worker cho Agent Ops Board.
+#
+# TRƯỚC KHI DEPLOY, sửa 4 chỗ có dấu <...> bên dưới: name, database_id, kv id, bucket_name.
+# Xem README mục "Dựng board của riêng bạn" để biết lệnh tạo từng thứ.
+
+name = "<ten-worker-cua-ban>"          # -> https://<ten-worker-cua-ban>.<subdomain>.workers.dev
+main = "src/index.js"
+compatibility_date = "2026-01-15"
+workers_dev = true
+
+# UI được build thành 1 file HTML duy nhất (build.js) rồi nhúng vào Worker dưới dạng text.
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = false
+
+# File nào nằm trong public/ được phục vụ thẳng theo đường dẫn của nó (public/favicon.svg ->
+# /favicon.svg), trình duyệt cache lại nên KHÔNG tốn payload mỗi lượt poll. Đây cũng là chỗ để
+# ảnh avatar agent nếu bạn muốn dùng ảnh thay emoji: bỏ file vào public/avatars/ rồi đặt cột
+# `icon` của agent thành "/avatars/ten-file.png". Cố ý không nhét ảnh vào cột icon dạng base64:
+# vài avatar ~24 KB sẽ đi kèm MỌI lần gọi /api/board (mỗi 15 giây), nặng hơn cả toàn bộ board.
+# Đường nào không khớp file trong public/ thì rơi xuống Worker như cũ — /api/*, /login, / vẫn nguyên.
+[assets]
+directory = "./public"
+
+[vars]
+# Tên board, hiện trên tab trình duyệt và trang đăng nhập.
+BOARD_TITLE = "Agent Ops Board"
+
+# Jira (TUỲ CHỌN — bỏ trống thì board vẫn chạy, chỉ là mã issue trong message không thành link
+# và hai endpoint /api/attach-image, /api/jira-source-comment trả lỗi cấu hình).
+# JIRA_BASE_URL = "https://ten-cong-ty.atlassian.net"
+# Khoá endpoint Jira lại đúng một project. Bỏ trống = nhận mọi project mà token có quyền —
+# nên đặt, vì token Jira thường rộng hơn nhiều so với việc board cần.
+# JIRA_PROJECT_KEY = "ENG"
+# Host được phép tải ảnh về để chèn vào Jira, ngoài files.slack.com và chính host Jira ở trên.
+# IMAGE_HOSTS = "storage.crisp.chat"
+
+# Link repo (TUỲ CHỌN): agent hay nhắc tới file trong repo giữa message ("outputs/abc.md").
+# Khai hai biến này thì board tự biến chúng thành link; bỏ trống thì để nguyên chữ.
+# REPO_BASE_URL = "https://github.com/<user>/<repo>/blob/main"
+# REPO_LINK_DIRS = "outputs,docs,notes"
+
+# Emoji bot thả lên tin Slack ngay khi nhận được mention (tên emoji Slack, không phải ký tự).
+# SLACK_ACK_EMOJI = "eyes"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "agent-ops-board"
+database_id = "<id-tra-ve-boi-wrangler-d1-create>"
+
+# Đếm số lần đăng nhập sai theo IP, để khoá tạm khi có người dò mã.
+[[kv_namespaces]]
+binding = "LOGIN_GUARD"
+id = "<id-tra-ve-boi-wrangler-kv-namespace-create>"
+
+# File đính kèm trong comment/message (ảnh, PDF...). Bucket riêng, không chung với public/ vì
+# đây là nội dung người dùng tự tải lên, không phải asset tĩnh của repo. Phục vụ qua
+# GET /api/attachments/:key, sau cùng cửa xác thực với mọi API khác — KHÔNG public, vì có thể
+# chứa ảnh chụp nội bộ nhạy cảm.
+[[r2_buckets]]
+binding = "ATTACHMENTS"
+bucket_name = "<ten-bucket-r2>"
+
+# Secrets (KHÔNG để trong file này — set bằng `wrangler secret put <TÊN>`):
+#   BOARD_PASSCODE        — mã bạn gõ để đăng nhập giao diện web            (bắt buộc)
+#   SESSION_SECRET        — khoá HMAC ký cookie phiên đăng nhập             (bắt buộc)
+#   API_TOKEN             — bearer token cho agent gọi /api/*               (bắt buộc)
+#   CLOUD_API_TOKEN       — token yếu hơn cho agent chạy trên cloud         (tuỳ chọn)
+#   SLACK_SIGNING_SECRET  — xác thực request từ Slack Events API            (tuỳ chọn)
+#   SLACK_BOT_TOKEN       — bot token xoxb-… để react/gửi tin Slack         (tuỳ chọn)
+#   JIRA_EMAIL            — email tài khoản Jira dùng cho API               (tuỳ chọn)
+#   JIRA_API_TOKEN        — API token Jira                                  (tuỳ chọn)
