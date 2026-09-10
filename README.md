@@ -224,49 +224,16 @@ curl -s "$BOARD_API_URL/api/tasks/$TASK_ID/messages" \
 
 ---
 
-## Tích hợp (tuỳ chọn — bỏ qua vẫn chạy tốt)
+## Hai ô link trên card
 
-Tất cả đều tắt sẵn. Không khai secret/biến tương ứng thì phần đó im lặng đứng ngoài, board vẫn
-chạy đủ chức năng.
+Card có hai ô chỉ để **dán link cho dễ lần lại**, board không gọi ra ngoài và không cần token gì:
 
-### Jira
+- **Jira key** (`jira_key`) — khai `JIRA_BASE_URL` trong `[vars]` thì mã issue trong ô này *và*
+  mọi mã dạng `ABC-1234` viết trong message tự thành link bấm được. Không khai thì để nguyên chữ.
+- **Slack thread** (`slack_url`) — link thread nguồn của việc, agent tự đặt lúc tạo card.
 
-Khai `JIRA_BASE_URL` (+ nên có `JIRA_PROJECT_KEY`) trong `[vars]` của `wrangler.toml`, rồi
-`wrangler secret put JIRA_EMAIL` và `JIRA_API_TOKEN`. Được thêm:
-
-- Mã issue trong message tự thành link (`ABC-1234` → Jira của bạn).
-- `POST /api/attach-image` — chèn ảnh từ Slack hoặc từ chính Jira vào description của một issue,
-  giữ đúng kích thước gốc. Ảnh chỉ tải được từ những host trong allow-list (`files.slack.com`,
-  host Jira của bạn, cộng những gì bạn khai trong `IMAGE_HOSTS`); không có allow-list thì
-  endpoint này thành proxy tải URL tuỳ ý — tức là một lỗ SSRF.
-- `POST /api/jira-source-comment` — đọc một thread Slack rồi gắn vào issue một comment ghi nguồn
-  (link hội thoại Crisp, tên supporter mở thread, tên khách). Sinh ra để vài tuần sau còn lần
-  ngược được về người báo. Idempotent: chạy lại trên cùng thread không đẻ comment trùng.
-
-`JIRA_PROJECT_KEY` khoá hai endpoint trên vào đúng một project. Nên đặt: token Jira thường có
-quyền rộng hơn nhiều so với việc board cần.
-
-### Slack
-
-`wrangler secret put SLACK_SIGNING_SECRET` và `SLACK_BOT_TOKEN`, rồi trỏ Request URL của Slack
-app về `https://<worker>.<subdomain>.workers.dev/slack/events`.
-
-Vì sao qua Worker chứ không phải Socket Mode: Socket Mode chỉ đẩy event tới client **đang** kết
-nối và không phát lại — máy bạn tắt là mention rơi im lặng, người tag không thấy gì. Worker thì
-luôn sống: nhận event, thả reaction xác nhận ngay (đặt bằng `SLACK_ACK_EMOJI`, mặc định 👀), xếp
-vào hàng đợi D1, để agent của bạn đến lấy khi máy bật.
-
-| Method | Path | Việc |
-|---|---|---|
-| `GET` | `/api/mention-queue` | lấy việc chưa ai nhận; `?claim=1` nhận luôn (atomic), `?older_than_minutes=` để bên tiêu thụ thứ hai chỉ nhặt việc bị bỏ quên lâu |
-| `POST` | `/api/mention-queue/ack` | báo đã xử lý xong (`event_ids`) |
-| `POST` | `/api/mention-queue/test` | bơm event giả để thử toàn tuyến, không đụng Slack |
-| `POST` | `/api/slack-post` | gửi tin **bằng danh nghĩa bot** (`channel`, `text`, tuỳ chọn `thread_ts`, `only_for`) |
-| `POST` | `/api/slack-react` | đổi reaction trên tin gốc (👀 → ✅/❌) |
-
-Có `CLOUD_API_TOKEN` (tuỳ chọn) là một token **thứ hai, yếu hơn**, chỉ gọi được đúng 6 endpoint
-trên. Dành cho agent chạy trên cloud, nơi bạn phải cắm token vào một chỗ ngoài tầm kiểm soát của
-repo: token đó lộ thì cũng không sờ được vào board.
+Tương tự, `REPO_BASE_URL` + `REPO_LINK_DIRS` biến đường dẫn file agent nhắc trong message
+(`outputs/abc.md`) thành link về repo của bạn.
 
 ---
 
@@ -281,7 +248,6 @@ npm run tail       # log realtime
 | Đường dẫn | Là gì |
 |---|---|
 | `src/index.js` | Worker: router, xác thực, toàn bộ API |
-| `src/attach-image.js` · `src/source-comment.js` · `src/slack-events.js` | ba tích hợp tuỳ chọn ở trên |
 | `ui/app.js` · `ui/base.css` · `ui/extra.css` | giao diện, thuần JS không framework |
 | `src/ui.html` | **sinh tự động** bởi `build.js` — đừng sửa tay, đã gitignore |
 | `schema.sql` | schema D1. Có `DROP TABLE`: chạy lại trên database đang dùng là mất sạch |

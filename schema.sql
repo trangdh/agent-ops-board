@@ -85,24 +85,3 @@ CREATE TABLE IF NOT EXISTS browsers (
   note       TEXT,
   sort_order INTEGER NOT NULL DEFAULT 0
 );
-
-/* Hàng đợi event Slack. Chỉ cần nếu bạn nối board với Slack (xem README mục "Slack").
-   Để nguyên cũng không sao: bảng rỗng không ảnh hưởng gì tới board. */
-CREATE TABLE IF NOT EXISTS slack_events (
-  -- event_id của Slack. Là KHOÁ CHÍNH có chủ đích: Slack gửi lại event khi không nhận được 200
-  -- trong 3 giây, INSERT OR IGNORE biến việc gửi lại thành vô hại thay vì đẻ 2 issue.
-  event_id     TEXT PRIMARY KEY,
-  kind         TEXT NOT NULL,          -- 'app_mention' | 'message_im'
-  channel      TEXT NOT NULL,
-  thread_ts    TEXT,                   -- rỗng nếu tag ngoài thread (khi đó msg_ts là gốc)
-  msg_ts       TEXT NOT NULL,
-  user_id      TEXT NOT NULL,
-  text         TEXT,
-  files        TEXT,                   -- JSON ảnh đính kèm, giữ nguyên để dựng lại transcript
-  received_at  TEXT NOT NULL,
-  claimed_at   TEXT,                   -- bên tiêu thụ đã nhận về xử lý
-  done_at      TEXT                    -- xử lý xong
-);
-
-CREATE INDEX IF NOT EXISTS idx_slack_events_pending
-  ON slack_events (done_at, claimed_at, received_at);

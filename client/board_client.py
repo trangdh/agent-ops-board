@@ -131,8 +131,8 @@ def approve(message_id):
 
 
 # Quy ước reaction: 👀 = đã nhận, đang làm · ✅ = xong · ❌ = không làm được/bỏ.
-# Cùng một dấu hiệu với reaction bot thả lên Slack (SLACK_ACK_EMOJI) — một ngôn ngữ "tôi đang
-# làm" ở cả hai nơi. Mỗi agent giữ 1 reaction trên 1 message (react sau ghi đè trước).
+# Mỗi agent giữ ĐÚNG 1 reaction trên 1 message: react sau ghi đè react trước, nên đặt 👀 lúc
+# bắt đầu rồi ✅ lúc xong sẽ không để đọng cả hai gây hiểu nhầm là còn đang chạy.
 WORKING, DONE, FAILED = "👀", "✅", "❌"
 EYES = WORKING  # tên cũ, giữ lại cho code đã viết trước đây
 # ⏳ = vẫn đang làm nhưng đã lâu hơn bình thường. Đặt tự động khi một lượt chạy vượt
@@ -256,7 +256,7 @@ def main():
     c.add_argument("--browser", help="TÊN trình duyệt Chrome dùng cho card này (rỗng = không dùng)")
     # Tự đặt id thay vì để Worker sinh ngẫu nhiên. Dùng cho job định kỳ: lượt chạy sau (retry
     # hôm sau, hay phần tự kiểm cuối script) tìm lại đúng card cũ mà không phải lưu id ở đâu.
-    c.add_argument("--id", help="id cố định cho card, vd slack-distill-2026-08")
+    c.add_argument("--id", help="id cố định cho card, vd bao-cao-thang-2026-01")
 
     m = sub.add_parser("add-message", help="thêm 1 message vào task")
     m.add_argument("task_id")

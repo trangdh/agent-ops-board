@@ -3,7 +3,7 @@
  *
  * Hai đường vào, hai cách xác thực khác nhau:
  *   - PO mở web  -> cookie phiên, lấy được sau khi gõ BOARD_PASSCODE ở trang đăng nhập.
- *   - Agent gọi  -> header `Authorization: Bearer <API_TOKEN>` (token nằm trong .env của repo).
+ *   - Agent gọi  -> header `Authorization: Bearer <API_TOKEN>` (token nằm trong .env phía agent).
  * Cả hai đều dùng chung /api/*; UI thì bắt buộc phải có cookie.
  *
  * Secrets (set bằng `wrangler secret put`, không bao giờ nằm trong repo):
@@ -11,9 +11,6 @@
  */
 
 import UI_HTML from "./ui.html";
-import { handleAttachImage } from "./attach-image.js";
-import { handleSourceComment } from "./source-comment.js";
-import { handleSlackEvents, handleMentionQueue } from "./slack-events.js";
 
 const SESSION_COOKIE = "board_session";
 const SESSION_DAYS = 30;
@@ -141,27 +138,6 @@ function hasApiToken(req, env) {
   return !!(env.API_TOKEN && safeEqual(bearer(req), env.API_TOKEN));
 }
 
-/* CLOUD_API_TOKEN — token RIÊNG, YẾU HƠN, cho agent chạy trên cloud.
- *
- * Vì sao không dùng chung API_TOKEN: cloud agent không đọc được `.env` (gitignored), nên token
- * của nó phải nằm trong cấu hình routine trên claude.ai — tức là ở một chỗ khác, ngoài tầm kiểm
- * soát của repo. Token đó lộ thì chỉ được làm đúng mấy việc dưới đây, KHÔNG sờ được vào board
- * (không tạo/sửa/xoá card, không đọc toàn bộ hội thoại các task).
- */
-const CLOUD_ALLOWED = [
-  ["GET", "/api/mention-queue"],
-  ["POST", "/api/mention-queue/ack"],
-  ["POST", "/api/slack-post"],
-  ["POST", "/api/slack-react"],
-  ["POST", "/api/attach-image"],
-  ["POST", "/api/jira-source-comment"],
-];
-
-function hasCloudToken(req, env, url) {
-  if (!env.CLOUD_API_TOKEN || !safeEqual(bearer(req), env.CLOUD_API_TOKEN)) return false;
-  return CLOUD_ALLOWED.some(([m, p]) => m === req.method && p === url.pathname);
-}
-
 /* ---------- đọc dữ liệu ---------- */
 
 /* Card Done cũ hơn ngần này ngày thì rời khỏi board (vẫn nguyên trong DB, xem lại bằng
@@ -281,8 +257,7 @@ const VALID_STATUS = ["backlog", "new", "pending_approval", "running", "done"];
 // Tên tạm khi PO tạo card mà không đặt tên. Agent thấy đúng chuỗi này thì tự tóm tắt mô tả rồi
 // đổi tên (PATCH /api/tasks/:id). Đổi giá trị ở đây là phải đổi cả trong client/board_client.py.
 const UNTITLED = "(untitled)";
-// Cùng trần với src/attach-image.js — không có lý do đặc biệt để
-// khác nhau, và giữ một con số duy nhất cho dễ nhớ.
+// Trần cho một file đính kèm. Cũng là trần R2 nhận trong POST /api/attachments.
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
 // Dùng chung cho POST /api/tasks (description) và POST /api/tasks/:id/messages (comment) — chỉ
@@ -315,23 +290,6 @@ async function handleApi(req, env, url, isPo) {
       env.DB.prepare("DELETE FROM tasks WHERE id = ?").bind(del[1]),
     ]);
     return json({ ok: true, deleted: del[1] });
-  }
-
-  // Chèn ảnh vào issue Jira. Đặt ở Worker vì đây là chỗ DUY NHẤT giữ được JIRA_API_TOKEN +
-  // SLACK_BOT_TOKEN mà không cần laptop PO bật (PO chốt). Bản Python
-  // script cục bộ (nếu bạn có) nên gọi vào đây chứ không tự làm — giữ đúng một implementation.
-  // Hàng đợi event Slack (listener lấy việc / báo xong / bơm event test).
-  const queued = await handleMentionQueue(req, env, url);
-  if (queued) return json(queued.body, queued.status);
-
-  if (req.method === "POST" && path === "/api/attach-image") {
-    const r = await handleAttachImage(req, env);
-    return json(r.body, r.status);
-  }
-
-  if (req.method === "POST" && path === "/api/jira-source-comment") {
-    const r = await handleSourceComment(req, env);
-    return json(r.body, r.status);
   }
 
   if (req.method === "GET" && path === "/api/board") {
@@ -703,24 +661,10 @@ export default {
       });
     }
 
-    // Slack gọi vào đây, KHÔNG có bearer token của mình — xác thực bằng chữ ký HMAC trong
-    // slack-events.js. Phải đặt TRƯỚC nhánh /api/* để không bị cửa token chặn.
-    if (url.pathname === "/slack/events") {
-      if (req.method !== "POST") return new Response("Method not allowed.", { status: 405 });
-      try {
-        return await handleSlackEvents(req, env);
-      } catch (err) {
-        // Trả 200 kể cả khi hỏng: 5xx làm Slack gửi lại liên tục, mà lỗi ở đây thường là lỗi
-        // logic của mình chứ không phải trục trặc nhất thời — gửi lại chỉ nhân lỗi lên.
-        console.log("slack/events error:", String(err && err.message || err));
-        return new Response("ok");
-      }
-    }
-
-    // API: cookie phiên (PO) HOẶC bearer token (agent) HOẶC token cloud (phạm vi hẹp)
+    // API: cookie phiên (PO đang mở web) HOẶC bearer token (agent)
     if (url.pathname.startsWith("/api/")) {
-      const isPo = await hasSession(req, env);          // PO đang mở web
-      if (!isPo && !hasApiToken(req, env) && !hasCloudToken(req, env, url)) {
+      const isPo = await hasSession(req, env);
+      if (!isPo && !hasApiToken(req, env)) {
         return json({ error: "Not authenticated." }, 401);
       }
       try {
