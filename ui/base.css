@@ -136,7 +136,12 @@ body {
    trong app.js. Backlog gấp -> board-row chỉ có rail + .board 4 cột, y hệt bố cục trước khi có
    Backlog (PO chốt 04/09/2026). Backlog mở -> rail biến mất, .board--5col đủ 5 cột ngang hàng. */
 .board-row { display: flex; gap: 12px; align-items: start; }
-.board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; align-items: start; flex: 1; min-width: 0; }
+/* .board không đặt align-items: start — mặc định "stretch" của grid làm mọi cột cao bằng cột
+   cao nhất trong hàng, để vùng thả kéo-thả (chính là bounding box của .column) phủ hết chiều
+   cao đó thay vì dừng lại ngay dưới card cuối. Thiếu dòng này thì cột ngắn (vd chỉ 1 card) nằm
+   cạnh cột dài sẽ có một khoảng trống bên dưới KHÔNG thuộc cột nào — phải cuộn trang lên tới
+   đúng vùng cột ngắn còn card mới thả được, dù đang kéo ngang từ cột dài xuống thấp hơn nhiều. */
+.board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; flex: 1; min-width: 0; }
 .board--5col { grid-template-columns: repeat(5, 1fr); }
 @media (max-width: 1100px) { .board { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 680px) { .board-row { flex-direction: column; } .board { grid-template-columns: 1fr; width: 100%; } }
@@ -161,7 +166,15 @@ body {
 }
 
 .column { background: var(--surface-sunken); border-radius: 6px; min-width: 0; }
-.column-head { display: flex; align-items: center; gap: 6px; padding: 8px 10px; }
+/* Sticky: cột càng cao (nhất là sau khi các cột trong hàng cao bằng nhau, xem .board ở trên)
+   càng dễ cuộn qua khỏi tên status ở đầu cột — lúc đang kéo card mà cuộn xuống thì mất luôn dấu
+   hiệu "đang thả vào cột nào". Ghim lại ở top:0 (không có topbar cố định nào để né) + tự có nền
+   + z-index để không bị card bên dưới đè lên khi dính. */
+.column-head {
+  display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+  position: sticky; top: 0; z-index: 3; background: var(--surface-sunken);
+  border-radius: 6px 6px 0 0;
+}
 .column-head h2 {
   font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
   margin: 0; color: var(--text-subtle); flex: 1;
@@ -189,7 +202,10 @@ body {
 .demo-tag { font-size: 11px; color: var(--ads-Y700); background: var(--ads-Y75); border-radius: 3px; padding: 1px 6px; }
 .jira-link { font-size: 12px; color: var(--link); font-weight: 500; }
 .card-time { margin-left: auto; font-size: 11px; color: var(--text-subtlest); }
-.card-title { font-size: 14px; font-weight: 500; margin: 0 0 10px; color: var(--text); text-align: left; }
+/* overflow-wrap: anywhere — title chứa 1 chuỗi liền không dấu cách (URL dài chẳng hạn) trước đây
+   tràn thẳng ra ngoài card, phá layout cả cột. Cho phép ngắt ở BẤT KỲ ký tự nào khi cần (không
+   chỉ ở khoảng trắng) để title luôn nằm gọn trong bề rộng card. */
+.card-title { font-size: 14px; font-weight: 500; margin: 0 0 10px; color: var(--text); text-align: left; overflow-wrap: anywhere; }
 .card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
 .avatar {

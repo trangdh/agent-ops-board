@@ -38,6 +38,9 @@
   var showArchived = false;
   var data = null;
   var openTaskId = null;   // giữ popup đang mở qua các lần render lại
+  /* Vừa kéo-thả xong 1 card bằng Pointer Events (xem wire()) — click bắn theo ngay sau pointerup
+     trên cùng phần tử KHÔNG phải bấm mở card, phải bỏ qua đúng 1 lần. */
+  var cardDragJustHappened = false;
   var editingDescTask = null; // id task đang sửa description (null = không sửa gì)
   var editingTitleTask = null; // id task đang sửa title (null = không sửa gì)
   // PO tự bấm mở/gấp Details trên mobile — nhớ theo từng task để không bị bung/gấp lại mỗi lần
@@ -376,7 +379,12 @@
       size + 'px;--avatar-color:' + esc(a.color) + '" data-agent="' + esc(key) +
       '" aria-label="' + esc(a.label) + " · " + esc(a.role) + '">' +
       (isImg
-        ? '<img src="' + esc(a.icon) + '" alt="' + esc(a.label) + '" loading="lazy">'
+        // draggable="false": <img> mặc định draggable=true trong mọi trình duyệt — nằm trong
+        // stepTracker() ở đáy MỌI card, đúng chỗ tay hay đặt xuống để bắt đầu kéo cả card. Không
+        // tắt cờ này thì trình duyệt bắt ảnh làm nguồn kéo (kéo-thả ảnh ra ngoài trang) thay vì
+        // nổi bọt lên pointerdown của .card cha — kéo-thả đổi status coi như chết ngay từ điểm
+        // chạm phổ biến nhất trên card.
+        ? '<img src="' + esc(a.icon) + '" alt="' + esc(a.label) + '" loading="lazy" draggable="false">'
         : a.icon) +
       "</span>";
   }
@@ -1213,11 +1221,20 @@
 
   function taskCard(task) {
     var flag = needsPo(task);
-    // Kéo thả đổi status (PO chốt) — cùng PATCH status với dropdown trong popup,
-    // xem khối "Kéo thả card" trong wire(). draggable không đụng gì tới click mở card: HTML5
-    // DnD chỉ bắn dragstart khi có di chuyển, click đứng yên vẫn qua data-open như cũ.
-    return '<button class="card' + (flag ? " card--needs-po" : "") + '" data-open="' + esc(task.id) +
-      '" data-title="' + esc(task.title.toLowerCase()) + '" draggable="true"><div class="card-top">' +
+    // Kéo thả đổi status — gắn pointerdown qua khối "Kéo thả card" ở wire()/module scope.
+    //
+    // KHÔNG dùng thẻ <button> làm nguồn kéo: hạn chế THẬT của nhiều trình duyệt với form
+    // control — <button draggable="true"> tự xử lý mousedown cho trạng thái pressed/click TRƯỚC
+    // khi trình duyệt kịp nhận diện cử chỉ kéo, nên hầu hết thao tác kéo chỉ ra một cú click.
+    // Dùng <div role="button" tabindex="0"> — vẫn bấm mở card + điều hướng bàn phím được
+    // (Enter/Space, xem keydown ở wire()), nhưng không còn là form control nên kéo hoạt động
+    // đúng như div thường (cách Trello/Jira board vẫn làm). Bản thân drag cũng KHÔNG dùng HTML5
+    // native draggable/dragstart nữa — tự quản lý bằng Pointer Events (pointerdown/move/up), vì
+    // một số trình duyệt có bug khiến bất kỳ cách chặn "chọn chữ thay vì kéo" nào (CSS
+    // user-select, JS mousedown/selectstart preventDefault) cũng làm dragstart chết hẳn, còn
+    // không chặn gì thì chập chờn ăn/không. Xem chi tiết ở khối "Kéo thả card" phía trên wire().
+    return '<div class="card' + (flag ? " card--needs-po" : "") + '" role="button" tabindex="0" data-open="' + esc(task.id) +
+      '" data-title="' + esc(task.title.toLowerCase()) + '"><div class="card-top">' +
       (flag ? '<span class="needs-po">' + esc(flag) + "</span>" : "") +
       (task.demo ? '<span class="demo-tag">🧪 demo</span>' : "") +
       (task.jira_key ? '<span class="jira-link">' + esc(task.jira_key) + "</span>" : "") +
@@ -1225,7 +1242,7 @@
       '</div><h3 class="card-title">' + esc(task.title) + "</h3>" +
       progressBar(task) +
       '<div class="card-bottom"><div class="tracker">' + stepTracker(task, 22) + "</div>" +
-      statusLozenge(task.status) + "</div></button>";
+      statusLozenge(task.status) + "</div></div>";
   }
 
   /* Cột Done chỉ vẽ 20 card gần nhất. Cột đã sắp theo updated_at giảm dần từ Worker nên 20 cái
@@ -1245,10 +1262,13 @@
      backlogRail() + board-row trong render(). */
   var collapsedColumns = { backlog: true };
 
-  /* Dải hẹp thay cho cột Backlog khi đang gấp — bấm để mở lại thành cột đầy đủ trong lưới. */
+  /* Dải hẹp thay cho cột Backlog khi đang gấp — bấm để mở lại thành cột đầy đủ trong lưới.
+     `data-status="backlog"` để cùng nhận kéo-thả như 5 cột kia — thiếu thuộc tính đó thì thả
+     card vào Backlog lúc đang GẤP (mặc định) không có tác dụng gì, phải mở rộng cột ra trước. */
   function backlogRail() {
     var count = data.tasks.filter(function (t) { return t.status === "backlog"; }).length;
-    return '<button type="button" class="backlog-rail" data-toggle-col="backlog" aria-expanded="false">' +
+    return '<button type="button" class="backlog-rail" data-toggle-col="backlog" ' +
+      'data-status="backlog" aria-expanded="false">' +
       '<span class="backlog-rail-arrow">▸</span>' +
       '<span class="backlog-rail-label">Backlog</span>' +
       '<span class="column-count">' + count + "</span></button>";
@@ -1457,6 +1477,114 @@
 
   /* ---------- tương tác ---------- */
 
+  /* Kéo thả card đổi status. KHÔNG dùng HTML5 native drag-and-drop (draggable=true/dragstart/
+     dragover/drop) — một số trình duyệt có bug thật khi kết hợp draggable với nội dung chọn
+     được: mọi cách chặn "chọn chữ thay vì kéo" (CSS user-select ở bất kỳ đâu trong cây .card,
+     JS mousedown/selectstart preventDefault) đều làm dragstart chết hẳn, còn không chặn gì thì
+     chập chờn ăn/không. Tự quản lý toàn bộ vòng đời kéo bằng con trỏ (pointerdown/move/up) thay
+     thế — né hẳn bug vì không còn dựa vào cơ chế kéo gốc của trình duyệt. Chỉ chuột trái
+     (pointerType "mouse", button 0): cảm ứng vẫn đổi status qua dropdown trong popup như cũ,
+     không phải lối duy nhất mất đi.
+
+     TOÀN BỘ khối này (state + hàm) nằm Ở NGOÀI wire() — chỉ cardDragOnPointerDown được GẮN lại
+     mỗi lần wire() chạy (để bắt card mới sau render()), còn onMove/onUp/cardDragState sống
+     xuyên suốt cả phiên. Định nghĩa chúng BÊN TRONG wire() là bug thật dễ dính: mỗi lần wire()
+     chạy lại (mọi render(), kể cả do chính lượt kéo vừa xong gây ra refresh()) sẽ tạo ra một bộ
+     onMove/onUp/st MỚI trong closure mới, nhưng listener ở document (pointermove/pointerup) chỉ
+     gắn được ĐÚNG 1 LẦN — nên từ lần render thứ 2 trở đi, pointerdown ghi vào một "st" khác hẳn
+     với "st" mà document đang lắng nghe, kéo coi như chết ngay sau lượt đầu tiên. */
+  var CARD_DRAG_THRESHOLD = 5; // px — dưới ngưỡng này vẫn coi là click đứng yên, không phải kéo
+  var cardDragState = null; // { card, taskId, startX, startY, dragging, ghost, col }
+
+  function cardDropZoneAt(x, y) {
+    var el = document.elementFromPoint(x, y);
+    return el && el.closest(".column, .backlog-rail");
+  }
+
+  // Bản sao nổi theo con trỏ — card thật đứng yên tại chỗ (chỉ mờ đi qua .card--dragging), giống
+  // cảm giác Trello/Jira dù không có ảnh kéo do trình duyệt tự vẽ (đặc quyền riêng của native
+  // DnD, custom kéo bằng JS không có sẵn).
+  function cardMakeGhost(card, e) {
+    var r = card.getBoundingClientRect();
+    var ghost = card.cloneNode(true);
+    ghost.className = "card card--ghost";
+    ghost.style.cssText = "position:fixed;pointer-events:none;z-index:9999;margin:0;" +
+      "width:" + r.width + "px;left:" + r.left + "px;top:" + r.top + "px;";
+    ghost.dataset.dx = e.clientX - r.left;
+    ghost.dataset.dy = e.clientY - r.top;
+    document.body.appendChild(ghost);
+    return ghost;
+  }
+
+  function cardDragOnMove(e) {
+    var st = cardDragState;
+    if (!st) return;
+    var dx = e.clientX - st.startX, dy = e.clientY - st.startY;
+    if (!st.dragging) {
+      if (Math.abs(dx) < CARD_DRAG_THRESHOLD && Math.abs(dy) < CARD_DRAG_THRESHOLD) return;
+      st.dragging = true;
+      st.card.classList.add("card--dragging");
+      st.ghost = cardMakeGhost(st.card, e);
+    }
+    e.preventDefault();
+    st.ghost.style.left = (e.clientX - st.ghost.dataset.dx) + "px";
+    st.ghost.style.top = (e.clientY - st.ghost.dataset.dy) + "px";
+    var col = cardDropZoneAt(e.clientX, e.clientY);
+    if (col !== st.col) {
+      if (st.col) st.col.classList.remove("column--dragover");
+      if (col) col.classList.add("column--dragover");
+      st.col = col;
+    }
+  }
+
+  async function cardDragOnUp() {
+    var cur = cardDragState;
+    if (!cur) return;
+    cardDragState = null;
+    cur.card.classList.remove("card--dragging");
+    if (cur.ghost) cur.ghost.remove();
+    if (cur.col) cur.col.classList.remove("column--dragover");
+    if (!cur.dragging) return; // không di chuyển đủ ngưỡng — để click tự lo như bình thường
+    // Vừa kéo thật xong: click nổ theo ngay sau đây (trên card này hoặc bất kỳ card nào dưới con
+    // trỏ lúc thả) không phải PO bấm mở card — chặn đúng 1 lần, tự dọn nếu không ai tiêu.
+    cardDragJustHappened = true;
+    setTimeout(function () { cardDragJustHappened = false; }, 50);
+    if (!cur.col) return;
+    var newStatus = cur.col.dataset.status;
+    var task = null;
+    data.tasks.forEach(function (t) { if (t.id === cur.taskId) task = t; });
+    if (!task || task.status === newStatus) return; // thả về đúng cột cũ, không làm gì
+    try {
+      await api("/api/tasks/" + cur.taskId, {
+        method: "PATCH", body: JSON.stringify({ status: newStatus }),
+      });
+      lastSnapshot = null;
+      await refresh(true);
+    } catch (err) {
+      setSync("error", "status change failed: " + err.message);
+    }
+  }
+
+  // pointermove/pointerup/pointercancel gắn Ở TÀI LIỆU (không chỉ trên card) để vẫn nhận được dù
+  // con trỏ đã rời khỏi card lúc kéo nhanh — và CHỈ MỘT LẦN, ở module scope (ngoài wire()), vì
+  // hàm xử lý đọc cardDragState sống ở module scope nên không cần/không được gắn lại mỗi render.
+  document.addEventListener("pointermove", cardDragOnMove);
+  document.addEventListener("pointerup", cardDragOnUp);
+  document.addEventListener("pointercancel", cardDragOnUp);
+
+  function cardDragOnPointerDown(e) {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    // Chặn chọn-chữ NGAY TỪ ĐÂY, không đợi qua khỏi ngưỡng ở cardDragOnMove — một số trình
+    // duyệt kịp bắt đầu chọn chữ ngay trong vài px đầu, trước khi cardDragOnMove kịp gọi
+    // preventDefault() ở ngưỡng. An toàn để gọi ở đây vì đã bỏ hẳn draggable=true — không còn cơ
+    // chế kéo gốc nào của trình duyệt bị preventDefault() trên mousedown/pointerdown làm gãy.
+    e.preventDefault();
+    cardDragState = {
+      card: this, taskId: this.dataset.open, startX: e.clientX, startY: e.clientY,
+      dragging: false, ghost: null, col: null,
+    };
+  }
+
   // Thanh địa chỉ luôn phản ánh card đang mở, để copy thẳng từ address bar cũng ra link đúng.
   function syncUrl() {
     var url = openTaskId ? taskUrl(openTaskId) : location.origin + location.pathname;
@@ -1472,6 +1600,10 @@
 
     document.querySelectorAll("[data-open]").forEach(function (btn) {
       btn.addEventListener("click", function () {
+        // Vừa kéo-thả xong (xem cardDragJustHappened trong khối Pointer Events bên dưới) thì
+        // click ăn theo SAU pointerup không phải PO bấm mở card — chỉ là hệ quả tự nhiên của
+        // chuỗi pointerdown/up trên cùng phần tử. Bỏ qua ĐÚNG MỘT LẦN rồi tắt cờ ngay.
+        if (cardDragJustHappened) { cardDragJustHappened = false; return; }
         openTaskId = btn.dataset.open;
         var m = document.getElementById("modal-" + openTaskId);
         if (m) {
@@ -1483,6 +1615,18 @@
         }
         markRead(openTaskId);
         ensureMessages(openTaskId);
+      });
+      // Card giờ là <div role="button"> chứ không phải <button> thật (để kéo-thả hoạt động —
+      // xem ghi chú ở taskCard()), nên Enter/Space không tự kích hoạt như button nữa. Bù lại
+      // bằng tay để giữ điều hướng bàn phím: bắn "click" thật để dùng chung đúng một chỗ xử lý
+      // ở trên, không chép lại logic. Bỏ qua khi KHÔNG phải chính card này (Space cũng cuộn
+      // trang theo mặc định của trình duyệt — chỉ chặn khi target đúng là card đang focus).
+      btn.addEventListener("keydown", function (e) {
+        if (e.target !== btn) return;
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          btn.click();
+        }
       });
     });
 
@@ -1633,49 +1777,14 @@
       });
     });
 
-    // Kéo thả card đổi status (PO chốt) — cùng PATCH /api/tasks/:id {status} với
-    // dropdown Status trong popup, chỉ khác đường vào. Chỉ desktop: HTML5 drag-and-drop không
-    // chạy trên cảm ứng, mobile vẫn đổi status qua dropdown như cũ (đã có sẵn, không phải lối
-    // duy nhất mất đi).
-    document.querySelectorAll(".card[draggable]").forEach(function (card) {
-      card.addEventListener("dragstart", function (e) {
-        card.classList.add("card--dragging");
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", card.dataset.open);
-      });
-      card.addEventListener("dragend", function () {
-        card.classList.remove("card--dragging");
-      });
-    });
-
-    document.querySelectorAll(".column").forEach(function (col) {
-      col.addEventListener("dragover", function (e) {
-        e.preventDefault();           // bắt buộc, nếu không trình duyệt từ chối cho drop
-        e.dataTransfer.dropEffect = "move";
-        col.classList.add("column--dragover");
-      });
-      col.addEventListener("dragleave", function (e) {
-        if (col.contains(e.relatedTarget)) return;   // vẫn trong cột, chỉ đổi con — đừng tắt
-        col.classList.remove("column--dragover");
-      });
-      col.addEventListener("drop", async function (e) {
-        e.preventDefault();
-        col.classList.remove("column--dragover");
-        var taskId = e.dataTransfer.getData("text/plain");
-        var newStatus = col.dataset.status;
-        var task = null;
-        data.tasks.forEach(function (t) { if (t.id === taskId) task = t; });
-        if (!task || task.status === newStatus) return;   // thả về đúng cột cũ, không làm gì
-        try {
-          await api("/api/tasks/" + taskId, {
-            method: "PATCH", body: JSON.stringify({ status: newStatus }),
-          });
-          lastSnapshot = null;
-          await refresh(true);
-        } catch (err) {
-          setSync("error", "status change failed: " + err.message);
-        }
-      });
+    // Kéo thả card đổi status — gắn pointerdown cho MỌI card ở mỗi lần wire() (card mới sau khi
+    // render() dựng lại DOM cũng phải có), nhưng dùng chung state/hàm xử lý sống Ở NGOÀI wire()
+    // (cardDragOnPointerDown, xem định nghĩa phía trên). Xem giải thích đầy đủ ở đó — TUYỆT ĐỐI
+    // không định nghĩa lại onMove/onUp/st bên trong wire(): mỗi lần wire() chạy lại (mọi lần
+    // render(), kể cả do chính lượt kéo vừa xong gây ra refresh()) sẽ tạo closure MỚI, trong khi
+    // listener ở document chỉ gắn được đúng 1 lần — 2 bản lệch nhau là kéo chết ngay sau lần đầu.
+    document.querySelectorAll(".card").forEach(function (card) {
+      card.addEventListener("pointerdown", cardDragOnPointerDown);
     });
 
     // Giao ngay cho Coordinator: ghi 1 comment po -> coordinator, đi lại đúng đường pickup đã có.
