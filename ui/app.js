@@ -63,6 +63,13 @@
      poll 15s cứ đập lại DOM là textarea bị thay bằng cái mới rỗng, mất chữ + mất focus (PO báo
      một lần thật). Chỉ cần 1 chỗ vì tại một thời điểm chỉ có 1 popup mở (giống openTaskId). */
   var keptDraft = null;    // {text, selStart, selEnd, focused} hoặc null nếu không có gì để giữ
+  /* Popup "New task" đang mở qua các lần render lại — CÙNG BỆNH với keptDraft ở trên nhưng cho
+     dialog #new-task-modal: trước đây không có gì giữ lại, nên poll 15s (hoặc bất kỳ refresh()
+     nào khác trong lúc PO đang gõ mô tả task mới) là dựng DOM mới, dialog cũ (đang showModal())
+     bị thay hẳn bằng bản mới CHƯA showModal() — popup tự đóng ngay trước mắt, mất luôn chữ đang
+     gõ dở. */
+  var newTaskOpen = false;
+  var newTaskDraft = null; // {text, selStart, selEnd, focused} hoặc null
   var lastMsgCount = null; // tổng số message lần trước, để biết có gì mới
   var unseen = 0;          // số message mới tới lúc tab đang ẩn
   /* Ba giá trị dưới đây do Worker gửi xuống trong `config` của /api/board, đặt bằng [vars]
@@ -1393,6 +1400,16 @@
         };
       }
     }
+    // Cùng lý do như keptDraft ở trên, riêng cho popup "New task" (xem newTaskOpen).
+    if (newTaskOpen) {
+      var ntBox = document.getElementById("nt-desc");
+      if (ntBox && ntBox.value) {
+        newTaskDraft = {
+          text: ntBox.value, selStart: ntBox.selectionStart, selEnd: ntBox.selectionEnd,
+          focused: document.activeElement === ntBox
+        };
+      }
+    }
 
     var legend = Object.keys(data.agents).map(function (key) {
       return '<span class="legend-item">' + avatar(key, 20) + " " + esc(data.agents[key].label) + "</span>";
@@ -1461,8 +1478,24 @@
         openTaskId = null;
       }
     }
+    if (newTaskOpen) {
+      var ntDlg = document.getElementById("new-task-modal");
+      if (ntDlg) {
+        ntDlg.showModal();
+        var ntBoxNew = document.getElementById("nt-desc");
+        if (ntBoxNew && newTaskDraft) {
+          ntBoxNew.value = newTaskDraft.text;
+          ntBoxNew.dispatchEvent(new Event("input", { bubbles: true }));
+          ntBoxNew.setSelectionRange(newTaskDraft.selStart, newTaskDraft.selEnd);
+          if (newTaskDraft.focused) ntBoxNew.focus();
+        }
+      } else {
+        newTaskOpen = false;
+      }
+    }
     keptScroll = 0;
     keptDraft = null;
+    newTaskDraft = null;
     wasAtBottom = false;
   }
 
@@ -1729,6 +1762,7 @@
       function close() {
         dialog.close();
         if (dialog.id === "modal-" + openTaskId) { openTaskId = null; syncUrl(); }
+        if (dialog.id === "new-task-modal") newTaskOpen = false;
         editingDescTask = null;
         editingTitleTask = null;
       }
@@ -1736,6 +1770,7 @@
       dialog.addEventListener("click", function (e) { if (e.target === dialog) close(); });
       dialog.addEventListener("cancel", function () {
         if (dialog.id === "modal-" + openTaskId) { openTaskId = null; syncUrl(); }
+        if (dialog.id === "new-task-modal") newTaskOpen = false;
       });
     });
 
@@ -2073,6 +2108,7 @@
     document.getElementById("new-task-btn").addEventListener("click", function () {
       document.getElementById("nt-error").textContent = "";
       document.getElementById("new-task-modal").showModal();
+      newTaskOpen = true;   // giữ popup mở qua các lần render lại — xem khai báo + render().
       document.getElementById("nt-desc").focus();
       // Dropdown lịch hẹn luôn bắt đầu đóng — dialog cũ bị tái dùng qua nhiều lần mở nếu
       // render() không chạy lại xen giữa (poll không thấy gì đổi), nên trạng thái mở/đóng
@@ -2144,6 +2180,7 @@
           });
         }
         pendingAttachments[NEW_TASK_ATTACH_KEY] = [];
+        newTaskOpen = false;
         document.getElementById("new-task-modal").close();
         await refresh(true);
       } catch (err) {
