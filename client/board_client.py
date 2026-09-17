@@ -126,6 +126,15 @@ def patch_task(task_id, **fields):
     return _call("PATCH", f"/api/tasks/{task_id}", payload)
 
 
+def get_task_status(task_id):
+    """Trạng thái RẤT NHẸ — {progress, stop_requested} — dùng để poll mỗi ~2s TRONG LÚC một lượt
+    claude -p đang chạy, để biết PO có vừa bấm nút Stop trên card không (đặt stop_requested=true
+    -> agent runner của bạn nên terminate() lượt đang chạy rồi patch_task(task_id,
+    stop_requested=False) để dọn cờ). KHÔNG dùng get_board() cho việc này — quá nặng để gọi lặp
+    lại suốt một lượt chạy có thể dài hàng chục phút."""
+    return _call("GET", f"/api/tasks/{task_id}/status")
+
+
 def approve(message_id):
     return _call("POST", f"/api/messages/{message_id}/approve")
 

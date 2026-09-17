@@ -58,12 +58,19 @@ Done xong là im, không có badge này thì kết quả nằm đó mà bạn kh
 Board chỉ *ghi* mốc đó — agent runner của bạn là bên đọc và thật sự chạy. Agent cũng tự đặt
 `run_at` quá khứ để tự khởi động lại chính mình ở lượt kế tiếp, không phải đi nhờ bạn bấm.
 
+**Nút Stop cho lượt đang chạy.** Gõ nhầm message, muốn gửi lại cái khác — bấm Stop trong modal
+thay vì đợi lượt cũ chạy hết. Board chỉ *ghi* cờ `stop_requested`; agent runner của bạn tự poll
+`GET /api/tasks/:id/status` (endpoint rất nhẹ, tách khỏi `/api/tasks/:id` đầy hội thoại) trong
+lúc chạy, thấy cờ thì huỷ lượt rồi tự dọn cờ. Context không mất — comment tiếp là chạy tiếp.
+
 **Ô Browser** (dành cho agent có điều khiển trình duyệt): gán một trình duyệt đã khai báo cho
 card. Để trống = card này không được đụng tới trình duyệt nào — một hàng rào thật, không phải
 luật suông trong prompt. Bảng `browsers` rỗng thì ô này chỉ hiện “chưa khai báo”, bỏ qua được.
 
 **Markdown trong message.** Heading, bullet, bảng, code fence, blockquote, đậm/nghiêng. Không tải
-thư viện ngoài — chỉ đúng những gì agent thật sự viết ra.
+thư viện ngoài — chỉ đúng những gì agent thật sự viết ra. Gõ bullet/numbered list trong ô soạn
+cũng tiện: Enter tự nối marker ở dòng mới (giống Notion/Slack/GitHub), Enter 2 lần liên tiếp trên
+dòng marker rỗng thì thoát list.
 
 **File đính kèm** trong comment, trong mô tả, và ngay từ form tạo card. Trần 25 MB, nằm trong R2,
 tải lại phải qua đúng cửa xác thực như mọi API khác.
@@ -202,8 +209,9 @@ Mọi endpoint cần **một trong hai**: cookie phiên (bạn đang mở web) h
 |---|---|---|
 | `GET` | `/api/board` | toàn bộ agents + tasks + messages + config. `?full=1` không cắt gì, `?archived=1` kèm cả card đã lưu trữ |
 | `GET` | `/api/tasks/:id` | hội thoại của đúng một card |
+| `GET` | `/api/tasks/:id/status` | `{progress, stop_requested}` — rất nhẹ, để agent runner poll mỗi vài giây trong lúc đang chạy (xem "Nút Stop" ở trên) |
 | `POST` | `/api/tasks` | tạo card — mọi field đều tuỳ chọn: `title`, `description`, `attachments`, `status`, `pipeline`, `jira_key`, `slack_url`, `session_id`, `demo`, `from`, `to`, `id` |
-| `PATCH` | `/api/tasks/:id` | sửa `title`/`status`/`jira_key`/`slack_url`/`run_at`/`browser`/`progress`/`session_id`/`pipeline`/`current_step` |
+| `PATCH` | `/api/tasks/:id` | sửa `title`/`status`/`jira_key`/`slack_url`/`run_at`/`browser`/`progress`/`stop_requested`/`session_id`/`pipeline`/`current_step`. `stop_requested=true` chỉ cookie phiên (bạn) đặt được — bearer token chỉ được đặt lại `false` |
 | `DELETE` | `/api/tasks/:id` | **chỉ bạn** (cookie phiên) — xoá card + toàn bộ message |
 | `POST` | `/api/tasks/:id/messages` | thêm message — cần `from`, `to`, và ít nhất một trong `text`/`attachments`; kèm được `kind`, `needs_approval`, và cập nhật `status`/`current_step` trong cùng lượt |
 | `PATCH` | `/api/messages/:id` | sửa `text` của một message — **chỉ bạn**, dùng để sửa lại mô tả card |

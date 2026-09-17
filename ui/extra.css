@@ -469,10 +469,14 @@
   background: var(--mention-bg); font-size: 11.5px; color: var(--link);
   overflow: hidden;
 }
-.progress-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.progress-text {
+  flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .progress-dot {
   flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor;
   animation: progress-pulse 1.4s ease-in-out infinite;
 }
 @keyframes progress-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) { .progress-dot { animation: none; } }
+/* Nút Stop trong dòng tiến độ — đẩy sát phải, không co lại theo text dài. */
+.progress-stop { flex: none; margin-left: auto; }

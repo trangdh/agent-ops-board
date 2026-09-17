@@ -49,7 +49,12 @@ CREATE TABLE tasks (
   browser           TEXT,
   -- Dòng trạng thái sống của lượt chạy đang diễn ra ("đang đọc issue…"). MỘT ô ghi đè chứ không
   -- phải message: tiến độ là thứ xem xong thì bỏ, nhét vào hội thoại là rác vĩnh viễn.
-  progress          TEXT
+  progress          TEXT,
+  -- Cờ "Stop": PO bấm nút Stop trên card đang chạy (gõ nhầm, muốn gửi lại message mới) -> đặt
+  -- true; agent runner của bạn poll GET /api/tasks/:id/status, thấy true thì huỷ lượt đang chạy
+  -- rồi tự đặt lại false. Chỉ PO (cookie session) đặt được true — agent (bearer token) chỉ được
+  -- đặt false, để dọn cờ sau khi đã xử lý xong yêu cầu dừng.
+  stop_requested    INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_tasks_status ON tasks(status, updated_at DESC);

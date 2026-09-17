@@ -209,6 +209,7 @@ async function loadBoard(env, opts) {
     seen_upto_id: t.seen_upto_id,
     browser: t.browser,
     progress: t.progress,
+    stop_requested: !!t.stop_requested,
     session_id: t.session_id,
     pipeline: JSON.parse(t.pipeline),
     current_step: t.current_step,
@@ -319,6 +320,19 @@ async function handleApi(req, env, url, isPo) {
         attachments: m.attachments ? JSON.parse(m.attachments) : [],
       })),
     });
+  }
+
+  /* Trạng thái sống RẤT NHẸ của một task — riêng cho agent runner poll mỗi ~2 giây TRONG LÚC
+     một lượt chạy đang diễn ra, để biết PO có vừa bấm nút Stop không (xem PATCH ở dưới, field
+     stop_requested). Cố ý tách khỏi GET /api/tasks/:id ở trên: endpoint đó kéo cả hội thoại đầy
+     đủ, quá nặng để gọi lặp lại mỗi vài giây suốt một lượt chạy có thể dài hàng chục phút. */
+  let statusMatch = /^\/api\/tasks\/([A-Za-z0-9_-]+)\/status$/.exec(path);
+  if (req.method === "GET" && statusMatch) {
+    const row = await env.DB.prepare(
+      "SELECT progress, stop_requested FROM tasks WHERE id = ?"
+    ).bind(statusMatch[1]).first();
+    if (!row) return json({ error: "Task not found." }, 404);
+    return json({ progress: row.progress || null, stop_requested: !!row.stop_requested });
   }
 
   if (req.method === "POST" && path === "/api/tasks") {
@@ -465,6 +479,18 @@ async function handleApi(req, env, url, isPo) {
        có lượt nào đang chạy. Cố ý là MỘT ô ghi đè chứ không phải message: tiến độ là thứ xem
        xong thì bỏ, nhét vào hội thoại là rác vĩnh viễn. */
     if ("progress" in body) { sets.push("progress = ?"); vals.push(body.progress || null); }
+    /* Nút "Stop": PO gõ nhầm/muốn gửi lại message mới trong lúc claude -p đang chạy cho task
+       này — đặt cờ, agent runner của bạn poll GET /api/tasks/:id/status mỗi ~2s thấy true thì
+       terminate() lượt đang chạy rồi TỰ đặt lại false (dọn cờ sau khi đã dừng). CHỈ PO đặt được
+       true (chỉ PO mới được quyết định "dừng" — agent tự dừng mình không có nghĩa gì); agent
+       (bearer token) được đặt false để dọn cờ sau khi đã xử lý xong yêu cầu dừng, không bị chặn
+       như set true. */
+    if ("stop_requested" in body) {
+      if (body.stop_requested && !isPo) {
+        return json({ error: "Only the signed-in PO can request a stop." }, 403);
+      }
+      sets.push("stop_requested = ?"); vals.push(body.stop_requested ? 1 : 0);
+    }
     // Mốc "PO đã xem tới message này" — badge chỉ hiện lại khi có message MỚI hơn mốc đó.
     if ("alerts_cleared_id" in body) {
       sets.push("alerts_cleared_id = ?");
@@ -489,7 +515,7 @@ async function handleApi(req, env, url, isPo) {
     // trên card đổi theo, làm PO tưởng agent vừa làm gì đó.
     // progress cũng vào đây: nó nhảy vài giây một lần, bump updated_at là card nhảy loạn lên đầu
     // cột và giờ trên card đổi liên tục dù chẳng có việc gì mới xong.
-    const readOnlyMarks = ["seen_upto_id", "alerts_cleared_id", "progress"];
+    const readOnlyMarks = ["seen_upto_id", "alerts_cleared_id", "progress", "stop_requested"];
     const onlyMarks = Object.keys(body).every((k) => readOnlyMarks.includes(k));
     if (!onlyMarks) { sets.push("updated_at = ?"); vals.push(nowIso()); }
     const res = await env.DB.prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`)

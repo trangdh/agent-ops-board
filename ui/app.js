@@ -381,6 +381,35 @@
       "</span>";
   }
 
+  /* Enter tiếp tục bullet/numbered list trong textarea thô — richText() đã render đúng "- x" /
+     "1. x" thành <ul>/<ol> khi HIỂN THỊ, nhưng lúc GÕ thì Enter chỉ xuống dòng trơn, PO phải tự
+     gõ lại "- " mỗi dòng. Bắt chước Notion/Slack/GitHub: dòng hiện tại khớp marker list thì dòng
+     mới tự nối marker (số tự +1 cho numbered); marker rỗng (Enter 2 lần liên tiếp để thoát list)
+     thì xoá marker, về dòng trơn thay vì lặp mãi.
+     Trả `true` nếu đã tự xử lý (đã preventDefault) — gọi nơi dùng bỏ qua hành vi Enter khác. */
+  function continueList(box, e) {
+    if (box.selectionStart !== box.selectionEnd) return false;   // đang bôi đen thì để mặc định
+    var pos = box.selectionStart;
+    var lineStart = box.value.lastIndexOf("\n", pos - 1) + 1;
+    var line = box.value.slice(lineStart, pos);
+    var bullet = /^(\s*)([-*])\s+(.*)$/.exec(line);
+    var number = /^(\s*)(\d+)([.)])\s+(.*)$/.exec(line);
+    if (!bullet && !number) return false;
+    e.preventDefault();
+    var body = bullet ? bullet[3] : number[4];
+    if (!body.trim()) {
+      // Marker rỗng (PO gõ "- " hoặc "1. " rồi Enter ngay, không nhập gì) = báo hiệu MUỐN THOÁT
+      // list — xoá marker của dòng đó thay vì nối thêm một mục rỗng nữa.
+      box.setRangeText("\n", lineStart, pos, "end");
+    } else if (bullet) {
+      box.setRangeText("\n" + bullet[1] + bullet[2] + " ", pos, pos, "end");
+    } else {
+      box.setRangeText("\n" + number[1] + (parseInt(number[2], 10) + 1) + number[3] + " ", pos, pos, "end");
+    }
+    box.dispatchEvent(new Event("input", { bubbles: true }));   // giữ mirror/autosize ăn theo
+    return true;
+  }
+
   function mentionChip(key) {
     var a = agent(key);
     return '<span class="mention" title="' + esc(a.role) + '">@' + esc(a.handle) + "</span>";
@@ -832,10 +861,20 @@
      claude -p rồi ghi vào task.progress mỗi vài giây; rỗng = không có lượt nào đang chạy.
      Đã đo: trung vị một lượt là 193 giây, 12/14 lượt trên 60 giây — suốt từng ấy thời
      gian tín hiệu duy nhất là reaction 👀, nên không cách nào biết nó đang làm gì hay đã treo. */
-  function progressBar(task) {
+  function progressBar(task, showStop) {
     if (!task.progress) return "";
+    // Nút Stop: chỉ hiện trong modal (showStop=true), không hiện ở card nhỏ ngoài board.
+    // task.stop_requested=true là đang chờ agent runner của bạn xử lý (poll rồi terminate lượt
+    // đang chạy) — disable nút, đổi chữ để khỏi bấm lặp lại tưởng chưa ăn.
+    var stopBtn = "";
+    if (showStop) {
+      stopBtn = task.stop_requested
+        ? '<button type="button" class="btn btn--subtle btn--tiny progress-stop" disabled>⏹ Stopping…</button>'
+        : '<button type="button" class="btn btn--subtle btn--tiny progress-stop" data-stop="' +
+          esc(task.id) + '" title="Stop the current run — use this if you typed something wrong and want to send a new message">⏹ Stop</button>';
+    }
     return '<div class="progress-live"><span class="progress-dot"></span>' +
-      '<span class="progress-text">' + esc(task.progress) + "</span></div>";
+      '<span class="progress-text">' + esc(task.progress) + "</span>" + stopBtn + "</div>";
   }
 
   function taskModal(task) {
@@ -862,7 +901,7 @@
           '<button type="button" class="btn btn--subtle btn--tiny" data-edittitle="' +
           esc(task.id) + '">✏️ Edit</button>') +
       "</div>" +
-      progressBar(task) + "</header>" +
+      progressBar(task, true) + "</header>" +
       '<div class="modal-body"><div class="modal-main">' +
       '<section class="section"><h3 class="section-title">Description' +
       (description && editingDescTask !== task.id
@@ -1095,6 +1134,13 @@
           closeMenu();
           return;
         }
+      }
+      // Shift+Enter = xuống dòng — chỗ DUY NHẤT gõ nhiều dòng được trong ô này, nên tiếp tục
+      // list ở đây (xem continueList()). Không khớp list thì continueList trả false, rơi xuống
+      // hành vi mặc định của trình duyệt (xuống dòng trơn).
+      if (e.key === "Enter" && e.shiftKey) {
+        continueList(box, e);
+        return;
       }
       // Enter gửi, Shift+Enter xuống dòng — đổi từ Ctrl+Enter (PO chốt, giống khung
       // chat thường gặp thay vì phải nhớ thêm phím Ctrl).
@@ -1501,6 +1547,29 @@
       });
     });
 
+    // Nút Stop: đặt cờ stop_requested, agent runner của bạn poll GET /api/tasks/:id/status rồi
+    // terminate() lượt đang chạy cho task này. Cập nhật state tại chỗ + render() ngay để nút đổi
+    // sang "Stopping…" liền, không đợi vòng poll board kế tiếp mới thấy phản hồi.
+    document.querySelectorAll("[data-stop]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var taskId = btn.dataset.stop;
+        var task = null;
+        (data && data.tasks ? data.tasks : []).forEach(function (t) { if (t.id === taskId) task = t; });
+        if (!task || task.stop_requested) return;
+        task.stop_requested = true;
+        lastSnapshot = null;
+        render();
+        api("/api/tasks/" + taskId, {
+          method: "PATCH", body: JSON.stringify({ stop_requested: true }),
+        }).catch(function (err) {
+          task.stop_requested = false;
+          lastSnapshot = null;
+          render();
+          setSync("error", "stop failed: " + err.message);
+        });
+      });
+    });
+
     document.querySelectorAll("[data-editdesc]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         editingDescTask = btn.dataset.editdesc;
@@ -1512,6 +1581,13 @@
 
     document.querySelectorAll("[data-canceledit]").forEach(function (btn) {
       btn.addEventListener("click", function () { editingDescTask = null; render(); });
+    });
+
+    // Sửa description — cũng tiếp tục list khi Enter (xem continueList()).
+    document.querySelectorAll(".desc-edit-input").forEach(function (ta) {
+      ta.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") continueList(this, e);
+      });
     });
 
     document.querySelectorAll("[data-descedit]").forEach(function (form) {
@@ -2046,6 +2122,12 @@
     document.getElementById("nt-submit").addEventListener("click", function () { createTask("now"); });
     document.getElementById("nt-later").addEventListener("click", function () { createTask("later"); });
     document.getElementById("nt-schedule-submit").addEventListener("click", function () { createTask("at"); });
+
+    // Enter ở đây xuống dòng trơn như textarea bình thường (khác ô comment-form, Enter gửi
+    // luôn) — tiếp tục list nếu dòng hiện tại là bullet/numbered (xem continueList()).
+    document.getElementById("nt-desc").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") continueList(this, e);
+    });
 
     var filter = document.getElementById("filter");
     filter.addEventListener("input", function () {
