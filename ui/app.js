@@ -1388,7 +1388,7 @@
       '<button type="button" class="btn btn--primary btn--tiny" id="nt-schedule-submit">Schedule</button>' +
       "</div>" +
       "</div>" +
-      '<button type="button" class="btn btn--primary" id="nt-submit">Run now</button>' +
+      '<button type="button" class="btn btn--primary" id="nt-submit" title="Enter">Run now (Enter)</button>' +
       "</div></form></div></dialog>";
   }
 
@@ -2269,10 +2269,13 @@
     document.getElementById("nt-later").addEventListener("click", function () { createTask("later"); });
     document.getElementById("nt-schedule-submit").addEventListener("click", function () { createTask("at"); });
 
-    // Enter ở đây xuống dòng trơn như textarea bình thường (khác ô comment-form, Enter gửi
-    // luôn) — tiếp tục list nếu dòng hiện tại là bullet/numbered (xem continueList()).
+    // Enter = Run now, Shift+Enter = xuống dòng — khớp hệt ô comment-form (Enter gửi, Shift+Enter
+    // xuống dòng). Shift+Enter tiếp tục list nếu dòng hiện tại là bullet/numbered (continueList()).
     document.getElementById("nt-desc").addEventListener("keydown", function (e) {
-      if (e.key === "Enter") continueList(this, e);
+      if (e.key !== "Enter") return;
+      if (e.shiftKey) { continueList(this, e); return; }
+      e.preventDefault();
+      createTask("now");
     });
 
     var filter = document.getElementById("filter");
