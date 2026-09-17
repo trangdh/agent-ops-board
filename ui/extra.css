@@ -317,10 +317,21 @@
    bản đầu 28/08/2026 nằm trong .comment-head). */
 .comment-actions { margin-top: 6px; }
 
-/* Kéo thả card đổi status (PO chốt 28/08/2026) — chỉ desktop, xem wire() trong app.js. */
+/* Kéo thả card đổi status (viết bằng Pointer Events — xem khối "Kéo thả card" trong app.js).
+   KHÔNG dùng CSS user-select ở đây dưới bất kỳ hình thức nào — một số trình duyệt có bug khiến
+   nó phá luôn cả cơ chế kéo. Chỉ desktop: cảm ứng vẫn đổi status qua dropdown trong popup. */
 .card { cursor: grab; }
 .card--dragging { opacity: 0.4; cursor: grabbing; }
+/* Bản sao nổi theo con trỏ lúc kéo — xem cardMakeGhost() trong app.js. pointer-events:none để
+   không cản việc dò cột đang hover (document.elementFromPoint) nằm NGAY DƯỚI nó. */
+.card--ghost { pointer-events: none; box-shadow: var(--shadow-overlay); cursor: grabbing; opacity: 0.9; }
+/* Cột đang là đích thả: mờ card có sẵn trong cột đi + làm nổi bật tên status ngay trên đầu cột —
+   để biết chắc sắp thả vào đâu trước khi buông tay. .card--ghost không bị mờ theo vì nó không
+   nằm trong DOM của .column (ghost gắn thẳng vào body). */
 .column--dragover { box-shadow: inset 0 0 0 2px var(--ads-B400); }
+.column--dragover .card { opacity: 0.35; transition: opacity 0.1s; }
+.column--dragover .column-head h2 { color: var(--ads-B400); }
+.backlog-rail.column--dragover .backlog-rail-label { color: var(--ads-B400); }
 
 .md > :first-child { margin-top: 0; }
 .md > :last-child { margin-bottom: 0; }
